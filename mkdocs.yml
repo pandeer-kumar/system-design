@@ -28,10 +28,13 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  # Two-column layout: the whole guide's table of contents on the left
+  # (sections expand on click; the page's own headings nest under the
+  # current page), and the selected page on the right.
   features:
-    - navigation.tabs
-    - navigation.sections
+    - toc.integrate
     - navigation.indexes
+    - navigation.path
     - navigation.top
     - navigation.footer
     - navigation.instant
@@ -162,3 +165,7 @@ nav:
     - 08-cheatsheets/03-technology-picker.md
     - 08-cheatsheets/04-interview-checklist.md
     - 08-cheatsheets/05-qa-drill.md
+  - Technology Deep Dives:
+    - 09-technology-deep-dives/01-kafka.md
+    - 09-technology-deep-dives/02-redis.md
+    - 09-technology-deep-dives/03-task-queues.md
