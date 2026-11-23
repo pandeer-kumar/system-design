@@ -28,28 +28,32 @@ Every case study follows the same structure:
 5. [Ticket Booking](06-ticket-booking.md): **contention and correctness**
 6. [Payment System](07-payment-system.md): **idempotency, ledgers, consistency**
 7. [Message Queue](10-message-queue.md): logs, replication, delivery semantics
+8. [Distributed Task Queue](25-distributed-task-queue.md): visibility timeouts, at-least-once, delays, fairness
 
 **Tier 2, very common:**
-URL Shortener, Ride Sharing, Video Streaming, Notification System, Web Crawler, Job Scheduler, Flash Sale, Distributed Counter
+URL Shortener, Ride Sharing, Video Streaming, Notification System, Web Crawler, Job Scheduler, Flash Sale, Distributed Counter, Ad Click Aggregation, Top-K / Trending
 
 **Tier 3, differentiators:**
-Collaborative Editor, Stock Exchange, Metrics System, File Sync, Typeahead, Proximity, Distributed Cache, Search, Leaderboard
+Collaborative Editor, Stock Exchange, Metrics System, File Sync, Typeahead, Proximity, Distributed Cache, Search, Leaderboard, Object Storage (S3)
 
 ## Concept → case study map
 
 | Concept | Where it's exercised |
 |---|---|
 | Atomic operations / CAS | Rate Limiter, Ticket Booking, Flash Sale, Counter |
-| Distributed locks / leases / fencing | Job Scheduler, Ticket Booking, Ride Sharing |
-| Idempotency | Payment, Notification, Message Queue, Chat |
+| Distributed locks / leases / fencing | Job Scheduler, Ticket Booking, Ride Sharing, Task Queue (receipt handles) |
+| Idempotency | Payment, Notification, Message Queue, Chat, Task Queue, Ad Click Aggregation |
 | Single-writer / partition ownership | Stock Exchange, Chat, Collaborative Editor, Flash Sale |
 | Consistent hashing | KV Store, Distributed Cache, Chat gateways |
 | Quorums, vector clocks, anti-entropy | KV Store |
 | Consensus / leader election | Message Queue, Job Scheduler, KV Store (metadata) |
 | Sagas / outbox | Payment, Flash Sale, Ride Sharing |
 | Fan-out | News Feed, Notification, Chat (groups) |
-| Hot keys | News Feed, Counter, Flash Sale, Distributed Cache, Leaderboard |
+| Hot keys | News Feed, Counter, Flash Sale, Distributed Cache, Leaderboard, Ad Click Aggregation, Top-K |
 | Geo-indexing | Ride Sharing, Proximity |
 | CRDTs / OT | Collaborative Editor |
-| Stream processing | Metrics, Counter, Typeahead (aggregation) |
-| CDN / blob storage | Video Streaming, File Sync, URL Shortener |
+| Stream processing | Ad Click Aggregation, Top-K, Metrics, Counter, Typeahead (aggregation) |
+| CDN / blob storage | Video Streaming, File Sync, URL Shortener, Object Storage |
+| Visibility timeouts / per-message acks | Task Queue, Job Scheduler, Notification |
+| Probabilistic data structures | Top-K (Count-Min Sketch), Web Crawler (Bloom filter), Counter (HyperLogLog) |
+| Erasure coding / durability math | Object Storage |
