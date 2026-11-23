@@ -81,6 +81,7 @@ nav:
     - 00-interview-framework/01-framework.md
     - 00-interview-framework/02-estimation.md
     - 00-interview-framework/03-senior-signals.md
+    - 00-interview-framework/04-deep-dive-playbook.md
   - Fundamentals:
     - 01-fundamentals/README.md
     - 01-fundamentals/01-core-qualities.md
