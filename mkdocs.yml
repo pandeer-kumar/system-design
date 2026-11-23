@@ -28,23 +28,25 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-  # Two-column layout: the whole guide's table of contents on the left
-  # (sections expand on click; the page's own headings nest under the
-  # current page), and the selected page on the right.
+  # Two-column layout: the whole guide's table of contents on the left,
+  # always expanded and grouped by section; the selected page on the right.
+  # (The "on this page" headings sidebar is hidden in docs/stylesheets/layout.css.)
   features:
-    - toc.integrate
+    - navigation.sections
     - navigation.indexes
     - navigation.path
     - navigation.top
     - navigation.footer
     - navigation.instant
     - navigation.tracking
-    - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
   icon:
     repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/layout.css
 
 plugins:
   - search
@@ -75,108 +77,108 @@ validation:
     anchors: warn
 
 nav:
-  - Home: README.md
-  - Interview Framework:
+  - Start here: README.md
+  - "00 · Interview Framework":
     - 00-interview-framework/README.md
-    - 00-interview-framework/01-framework.md
-    - 00-interview-framework/02-estimation.md
-    - 00-interview-framework/03-senior-signals.md
-    - 00-interview-framework/04-deep-dive-playbook.md
-  - Fundamentals:
+    - "01 · The 45-Minute Framework": 00-interview-framework/01-framework.md
+    - "02 · Back-of-the-Envelope Estimation": 00-interview-framework/02-estimation.md
+    - "03 · Senior and Staff Signals": 00-interview-framework/03-senior-signals.md
+    - "04 · The Deep-Dive Playbook": 00-interview-framework/04-deep-dive-playbook.md
+  - "01 · Fundamentals":
     - 01-fundamentals/README.md
-    - 01-fundamentals/01-core-qualities.md
-    - 01-fundamentals/02-networking.md
-    - 01-fundamentals/03-cap-pacelc.md
-    - 01-fundamentals/04-api-design.md
-  - Concurrency:
+    - "01 · Scalability, Availability, Latency": 01-fundamentals/01-core-qualities.md
+    - "02 · Networking for System Design": 01-fundamentals/02-networking.md
+    - "03 · CAP and PACELC": 01-fundamentals/03-cap-pacelc.md
+    - "04 · API Design": 01-fundamentals/04-api-design.md
+  - "02 · Concurrency":
     - 02-concurrency/README.md
-    - 02-concurrency/01-fundamentals.md
-    - 02-concurrency/02-locks-and-sync.md
-    - 02-concurrency/03-database-concurrency.md
-    - 02-concurrency/04-optimistic-vs-pessimistic.md
-    - 02-concurrency/05-distributed-locks.md
-    - 02-concurrency/06-idempotency.md
-    - 02-concurrency/07-concurrency-models.md
-    - 02-concurrency/08-classic-problems.md
-  - Distributed Systems:
+    - "01 · Concurrency Fundamentals": 02-concurrency/01-fundamentals.md
+    - "02 · Locks and Deadlocks": 02-concurrency/02-locks-and-sync.md
+    - "03 · Database Isolation and MVCC": 02-concurrency/03-database-concurrency.md
+    - "04 · Optimistic vs Pessimistic": 02-concurrency/04-optimistic-vs-pessimistic.md
+    - "05 · Distributed Locks and Fencing": 02-concurrency/05-distributed-locks.md
+    - "06 · Idempotency and Exactly-Once": 02-concurrency/06-idempotency.md
+    - "07 · Concurrency Models": 02-concurrency/07-concurrency-models.md
+    - "08 · Classic Concurrency Problems": 02-concurrency/08-classic-problems.md
+  - "03 · Distributed Systems":
     - 03-distributed-systems/README.md
-    - 03-distributed-systems/01-failure-modes.md
-    - 03-distributed-systems/02-time-and-ordering.md
-    - 03-distributed-systems/03-replication.md
-    - 03-distributed-systems/04-partitioning.md
-    - 03-distributed-systems/05-consistency-models.md
-    - 03-distributed-systems/06-consensus.md
-    - 03-distributed-systems/07-distributed-transactions.md
-    - 03-distributed-systems/08-crdts-conflict-resolution.md
-    - 03-distributed-systems/09-membership-gossip.md
-  - Building Blocks:
+    - "01 · Failure Modes": 03-distributed-systems/01-failure-modes.md
+    - "02 · Time, Clocks, and Ordering": 03-distributed-systems/02-time-and-ordering.md
+    - "03 · Replication": 03-distributed-systems/03-replication.md
+    - "04 · Partitioning and Consistent Hashing": 03-distributed-systems/04-partitioning.md
+    - "05 · Consistency Models": 03-distributed-systems/05-consistency-models.md
+    - "06 · Consensus: Paxos and Raft": 03-distributed-systems/06-consensus.md
+    - "07 · Distributed Transactions": 03-distributed-systems/07-distributed-transactions.md
+    - "08 · CRDTs and Conflict Resolution": 03-distributed-systems/08-crdts-conflict-resolution.md
+    - "09 · Membership and Gossip": 03-distributed-systems/09-membership-gossip.md
+  - "04 · Building Blocks":
     - 04-building-blocks/README.md
-    - 04-building-blocks/01-load-balancing.md
-    - 04-building-blocks/02-caching.md
-    - 04-building-blocks/03-databases.md
-    - 04-building-blocks/04-messaging.md
-    - 04-building-blocks/05-storage-cdn.md
-    - 04-building-blocks/06-search.md
-    - 04-building-blocks/07-id-generation.md
-    - 04-building-blocks/08-rate-limiting.md
-    - 04-building-blocks/09-observability.md
-  - Patterns:
+    - "01 · Load Balancing and Proxies": 04-building-blocks/01-load-balancing.md
+    - "02 · Caching": 04-building-blocks/02-caching.md
+    - "03 · Databases": 04-building-blocks/03-databases.md
+    - "04 · Message Queues and Streaming": 04-building-blocks/04-messaging.md
+    - "05 · Blob Storage and CDN": 04-building-blocks/05-storage-cdn.md
+    - "06 · Search and Indexing": 04-building-blocks/06-search.md
+    - "07 · Unique ID Generation": 04-building-blocks/07-id-generation.md
+    - "08 · Rate Limiting Algorithms": 04-building-blocks/08-rate-limiting.md
+    - "09 · Observability and SLOs": 04-building-blocks/09-observability.md
+  - "05 · Patterns":
     - 05-patterns/README.md
-    - 05-patterns/01-resilience.md
-    - 05-patterns/02-event-driven.md
-    - 05-patterns/03-microservices.md
-    - 05-patterns/04-multi-region.md
-    - 05-patterns/05-data-processing.md
-    - 05-patterns/06-security.md
-  - Case Studies:
+    - "01 · Resilience Patterns": 05-patterns/01-resilience.md
+    - "02 · Event-Driven, CQRS, Event Sourcing": 05-patterns/02-event-driven.md
+    - "03 · Microservices and Service Mesh": 05-patterns/03-microservices.md
+    - "04 · Multi-Region and Disaster Recovery": 05-patterns/04-multi-region.md
+    - "05 · Batch and Stream Processing": 05-patterns/05-data-processing.md
+    - "06 · Security": 05-patterns/06-security.md
+  - "06 · Case Studies":
     - 06-case-studies/README.md
-    - 06-case-studies/01-url-shortener.md
-    - 06-case-studies/02-rate-limiter.md
-    - 06-case-studies/03-key-value-store.md
-    - 06-case-studies/04-news-feed.md
-    - 06-case-studies/05-chat-system.md
-    - 06-case-studies/06-ticket-booking.md
-    - 06-case-studies/07-payment-system.md
-    - 06-case-studies/08-ride-sharing.md
-    - 06-case-studies/09-video-streaming.md
-    - 06-case-studies/10-message-queue.md
-    - 06-case-studies/11-job-scheduler.md
-    - 06-case-studies/12-collaborative-editor.md
-    - 06-case-studies/13-web-crawler.md
-    - 06-case-studies/14-notification-system.md
-    - 06-case-studies/15-typeahead.md
-    - 06-case-studies/16-file-sync.md
-    - 06-case-studies/17-stock-exchange.md
-    - 06-case-studies/18-metrics-monitoring.md
-    - 06-case-studies/19-distributed-counter.md
-    - 06-case-studies/20-flash-sale.md
-    - 06-case-studies/21-proximity-service.md
-    - 06-case-studies/22-distributed-cache.md
-    - 06-case-studies/23-search-system.md
-    - 06-case-studies/24-leaderboard.md
-    - 06-case-studies/25-distributed-task-queue.md
-    - 06-case-studies/26-ad-click-aggregation.md
-    - 06-case-studies/27-top-k-trending.md
-    - 06-case-studies/28-object-storage.md
-  - Real World:
+    - "01 · URL Shortener": 06-case-studies/01-url-shortener.md
+    - "02 · Distributed Rate Limiter": 06-case-studies/02-rate-limiter.md
+    - "03 · Key-Value Store (Dynamo)": 06-case-studies/03-key-value-store.md
+    - "04 · News Feed": 06-case-studies/04-news-feed.md
+    - "05 · Chat System": 06-case-studies/05-chat-system.md
+    - "06 · Ticket Booking": 06-case-studies/06-ticket-booking.md
+    - "07 · Payment System": 06-case-studies/07-payment-system.md
+    - "08 · Ride Sharing": 06-case-studies/08-ride-sharing.md
+    - "09 · Video Streaming": 06-case-studies/09-video-streaming.md
+    - "10 · Message Queue (Kafka)": 06-case-studies/10-message-queue.md
+    - "11 · Job Scheduler": 06-case-studies/11-job-scheduler.md
+    - "12 · Collaborative Editor": 06-case-studies/12-collaborative-editor.md
+    - "13 · Web Crawler": 06-case-studies/13-web-crawler.md
+    - "14 · Notification System": 06-case-studies/14-notification-system.md
+    - "15 · Typeahead": 06-case-studies/15-typeahead.md
+    - "16 · File Sync (Dropbox)": 06-case-studies/16-file-sync.md
+    - "17 · Stock Exchange": 06-case-studies/17-stock-exchange.md
+    - "18 · Metrics and Monitoring": 06-case-studies/18-metrics-monitoring.md
+    - "19 · Distributed Counter": 06-case-studies/19-distributed-counter.md
+    - "20 · Flash Sale": 06-case-studies/20-flash-sale.md
+    - "21 · Proximity Service": 06-case-studies/21-proximity-service.md
+    - "22 · Distributed Cache": 06-case-studies/22-distributed-cache.md
+    - "23 · Search System": 06-case-studies/23-search-system.md
+    - "24 · Leaderboard": 06-case-studies/24-leaderboard.md
+    - "25 · Task Queue (SQS)": 06-case-studies/25-distributed-task-queue.md
+    - "26 · Ad Click Aggregation": 06-case-studies/26-ad-click-aggregation.md
+    - "27 · Top-K / Trending": 06-case-studies/27-top-k-trending.md
+    - "28 · Object Storage (S3)": 06-case-studies/28-object-storage.md
+  - "07 · Real World":
     - 07-real-world/README.md
-    - 07-real-world/01-papers.md
-    - 07-real-world/02-outages-postmortems.md
-    - 07-real-world/03-company-architectures.md
-  - Cheat Sheets:
+    - "01 · Must-Read Papers": 07-real-world/01-papers.md
+    - "02 · Famous Outages": 07-real-world/02-outages-postmortems.md
+    - "03 · Company Architectures": 07-real-world/03-company-architectures.md
+  - "08 · Cheat Sheets":
     - 08-cheatsheets/README.md
-    - 08-cheatsheets/01-numbers.md
-    - 08-cheatsheets/02-tradeoffs.md
-    - 08-cheatsheets/03-technology-picker.md
-    - 08-cheatsheets/04-interview-checklist.md
-    - 08-cheatsheets/05-qa-drill.md
-  - Technology Deep Dives:
+    - "01 · Numbers to Know": 08-cheatsheets/01-numbers.md
+    - "02 · Trade-off Tables": 08-cheatsheets/02-tradeoffs.md
+    - "03 · Technology Picker": 08-cheatsheets/03-technology-picker.md
+    - "04 · Interview Day Checklist": 08-cheatsheets/04-interview-checklist.md
+    - "05 · Q&A Drill (100 Questions)": 08-cheatsheets/05-qa-drill.md
+  - "09 · Technology Deep Dives":
     - 09-technology-deep-dives/README.md
-    - 09-technology-deep-dives/01-kafka.md
-    - 09-technology-deep-dives/02-redis.md
-    - 09-technology-deep-dives/03-task-queues.md
-    - 09-technology-deep-dives/04-postgresql-mysql.md
-    - 09-technology-deep-dives/05-cassandra-dynamodb.md
-    - 09-technology-deep-dives/06-elasticsearch.md
-    - 09-technology-deep-dives/07-zookeeper-etcd.md
-    - 09-technology-deep-dives/08-stream-processing-flink.md
+    - "01 · Kafka": 09-technology-deep-dives/01-kafka.md
+    - "02 · Redis": 09-technology-deep-dives/02-redis.md
+    - "03 · Task Queues (RabbitMQ, SQS, Celery)": 09-technology-deep-dives/03-task-queues.md
+    - "04 · PostgreSQL and MySQL": 09-technology-deep-dives/04-postgresql-mysql.md
+    - "05 · Cassandra and DynamoDB": 09-technology-deep-dives/05-cassandra-dynamodb.md
+    - "06 · Elasticsearch": 09-technology-deep-dives/06-elasticsearch.md
+    - "07 · ZooKeeper and etcd": 09-technology-deep-dives/07-zookeeper-etcd.md
+    - "08 · Stream Processing (Flink)": 09-technology-deep-dives/08-stream-processing-flink.md
