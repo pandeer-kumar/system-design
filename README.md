@@ -27,9 +27,9 @@ When you add a new page, also add it to the `nav:` list in `mkdocs.yml`. Leave a
 | Phase | Time | What to do |
 |---|---|---|
 | 1. Foundation | Week 1–2 | Read `00` → `03` in order. Don't skip concurrency or distributed systems. |
-| 2. Building blocks | Week 3 | Read `04`. For each component, be able to explain internals, not just usage. |
+| 2. Building blocks | Week 3 | Read `04`, then `09` (Kafka, Redis, task queues, Postgres, Cassandra/DynamoDB, Elasticsearch, etcd, Flink). Be able to explain internals and failure modes, not just usage. |
 | 3. Patterns | Week 4 | Read `05`. These are the vocabulary of senior answers. |
-| 4. Case studies | Week 5–7 | Read `06`. Do each one **yourself first** (45 min, whiteboard), then compare. |
+| 4. Case studies | Week 5–7 | Read `00/04` (deep-dive playbook), then `06`. Do each one **yourself first** (45 min, whiteboard), then compare. |
 | 5. Real-world | Ongoing | Read `07` (papers + outages). This is what makes answers sound experienced. |
 | 6. Revision | Last week | `08` cheat sheets plus re-doing 5 case studies under time pressure. |
 
@@ -42,6 +42,7 @@ When you add a new page, also add it to the `nav:` list in `mkdocs.yml`. Leave a
 - [01 — The 45-minute framework](00-interview-framework/01-framework.md)
 - [02 — Back-of-the-envelope estimation](00-interview-framework/02-estimation.md)
 - [03 — What senior/staff signals look like](00-interview-framework/03-senior-signals.md)
+- [04 — The deep-dive playbook](00-interview-framework/04-deep-dive-playbook.md) ⭐
 
 ### [01 — Fundamentals](01-fundamentals/README.md)
 
@@ -122,6 +123,10 @@ When you add a new page, also add it to the `nav:` list in `mkdocs.yml`. Leave a
 | 22 | [Distributed Cache (Memcached/Redis Cluster)](06-case-studies/22-distributed-cache.md) | Sharding, replication, hot keys, eviction |
 | 23 | [Search Engine / Log Search](06-case-studies/23-search-system.md) | Inverted index, sharding, scatter-gather |
 | 24 | [Leaderboard / Gaming](06-case-studies/24-leaderboard.md) | Sorted sets, real-time ranking at scale |
+| 25 | [Distributed Task Queue (design SQS)](06-case-studies/25-distributed-task-queue.md) | **Visibility timeouts, at-least-once, delays, FIFO groups** |
+| 26 | [Ad Click Aggregation](06-case-studies/26-ad-click-aggregation.md) | Event time, watermarks, exactly-once counting, reconciliation |
+| 27 | [Top-K / Trending](06-case-studies/27-top-k-trending.md) | Count-Min Sketch, correct distributed merge, sliding windows |
+| 28 | [Object Storage (design S3)](06-case-studies/28-object-storage.md) | Metadata/data split, erasure coding, strong consistency |
 
 ### [07 — Real World](07-real-world/README.md)
 
@@ -136,6 +141,17 @@ When you add a new page, also add it to the `nav:` list in `mkdocs.yml`. Leave a
 - [03 — Technology picker](08-cheatsheets/03-technology-picker.md)
 - [04 — Interview day checklist and common mistakes](08-cheatsheets/04-interview-checklist.md)
 - [05 — Concurrency and distributed systems Q&A drill (100+ questions)](08-cheatsheets/05-qa-drill.md)
+
+### [09 — Technology Deep Dives](09-technology-deep-dives/README.md) ⭐
+
+- [01 — Kafka internals](09-technology-deep-dives/01-kafka.md)
+- [02 — Redis internals](09-technology-deep-dives/02-redis.md)
+- [03 — Task queues: RabbitMQ, SQS, Celery, Sidekiq, DB-backed queues](09-technology-deep-dives/03-task-queues.md)
+- [04 — PostgreSQL and MySQL internals](09-technology-deep-dives/04-postgresql-mysql.md)
+- [05 — Cassandra and DynamoDB](09-technology-deep-dives/05-cassandra-dynamodb.md)
+- [06 — Elasticsearch / OpenSearch internals](09-technology-deep-dives/06-elasticsearch.md)
+- [07 — ZooKeeper and etcd](09-technology-deep-dives/07-zookeeper-etcd.md)
+- [08 — Stream processing (Flink)](09-technology-deep-dives/08-stream-processing-flink.md)
 
 ---
 
