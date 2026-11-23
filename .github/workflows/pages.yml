@@ -2,7 +2,9 @@ name: Deploy site to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # main is the long-term home; the working branch is included so the site
+    # deploys while it is still the repository's only (default) branch.
+    branches: [main, claude/awesome-fermat-n1klev]
   workflow_dispatch:
 
 permissions:
