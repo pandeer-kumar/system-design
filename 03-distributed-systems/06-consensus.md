@@ -1,5 +1,7 @@
 # Consensus: Paxos, Raft, ZAB, and Leader Election
 
+> **Go deeper:** [ZooKeeper and etcd in practice](../09-technology-deep-dives/07-zookeeper-etcd.md)
+
 ## What consensus solves
 
 Getting a group of nodes to **agree on a value** (or a sequence of values, i.e., a log) despite failures.

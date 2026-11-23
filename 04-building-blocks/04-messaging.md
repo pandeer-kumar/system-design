@@ -1,5 +1,7 @@
 # Message Queues and Streaming
 
+> **Go deeper:** [Kafka internals](../09-technology-deep-dives/01-kafka.md) · [Task queues](../09-technology-deep-dives/03-task-queues.md) · [Design a task queue](../06-case-studies/25-distributed-task-queue.md)
+
 ## Why use async messaging
 
 - **Decoupling:** producers don't need consumers to be up

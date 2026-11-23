@@ -1,5 +1,7 @@
 # Data Processing: Batch, Stream, Lambda, Kappa
 
+> **Go deeper:** [Stream processing (Flink)](../09-technology-deep-dives/08-stream-processing-flink.md) · [Ad click aggregation](../06-case-studies/26-ad-click-aggregation.md)
+
 ## Batch processing
 
 - Process a **bounded** dataset all at once (hourly/daily jobs).

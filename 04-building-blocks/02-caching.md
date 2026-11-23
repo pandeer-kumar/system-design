@@ -1,5 +1,7 @@
 # Caching
 
+> **Go deeper:** [Redis internals](../09-technology-deep-dives/02-redis.md) · [Distributed cache case study](../06-case-studies/22-distributed-cache.md)
+
 > "There are only two hard things in Computer Science: cache invalidation and naming things." Phil Karlton
 
 ## Where caches live

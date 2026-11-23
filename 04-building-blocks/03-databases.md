@@ -1,5 +1,7 @@
 # Databases: Choosing and Understanding Them
 
+> **Go deeper:** [PostgreSQL and MySQL internals](../09-technology-deep-dives/04-postgresql-mysql.md) · [Cassandra and DynamoDB](../09-technology-deep-dives/05-cassandra-dynamodb.md)
+
 ## Decision framework: start from access patterns
 
 1. What are the **queries**? (point lookup, range, joins, full-text, graph traversal, aggregation)

@@ -1,5 +1,7 @@
 # Search and Indexing
 
+> **Go deeper:** [Elasticsearch internals](../09-technology-deep-dives/06-elasticsearch.md)
+
 ## Inverted index
 
 Maps **term → posting list** (document IDs where the term appears, often with positions and frequencies).
