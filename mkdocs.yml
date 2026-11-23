@@ -154,6 +154,7 @@ nav:
     - 06-case-studies/23-search-system.md
     - 06-case-studies/24-leaderboard.md
     - 06-case-studies/25-distributed-task-queue.md
+    - 06-case-studies/26-ad-click-aggregation.md
   - Real World:
     - 07-real-world/README.md
     - 07-real-world/01-papers.md
