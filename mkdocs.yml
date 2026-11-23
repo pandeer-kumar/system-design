@@ -174,3 +174,4 @@ nav:
     - 09-technology-deep-dives/05-cassandra-dynamodb.md
     - 09-technology-deep-dives/06-elasticsearch.md
     - 09-technology-deep-dives/07-zookeeper-etcd.md
+    - 09-technology-deep-dives/08-stream-processing-flink.md
