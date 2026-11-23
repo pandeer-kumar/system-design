@@ -28,11 +28,11 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-  # Two-column layout: the whole guide's table of contents on the left,
-  # always expanded and grouped by section; the selected page on the right.
-  # (The "on this page" headings sidebar is hidden in docs/stylesheets/layout.css.)
+  # Left: the guide's table of contents. Sections expand on click; the page
+  # you're reading shows its own headings under it. Right: the page.
+  # (The home page hides its heading list: its content is already a contents page.)
   features:
-    - navigation.sections
+    - toc.integrate
     - navigation.indexes
     - navigation.path
     - navigation.top
@@ -77,7 +77,7 @@ validation:
     anchors: warn
 
 nav:
-  - Start here: README.md
+  - Home: README.md
   - "00 · Interview Framework":
     - 00-interview-framework/README.md
     - "01 · The 45-Minute Framework": 00-interview-framework/01-framework.md
