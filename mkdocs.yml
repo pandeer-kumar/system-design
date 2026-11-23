@@ -171,6 +171,7 @@ nav:
     - 08-cheatsheets/04-interview-checklist.md
     - 08-cheatsheets/05-qa-drill.md
   - Technology Deep Dives:
+    - 09-technology-deep-dives/README.md
     - 09-technology-deep-dives/01-kafka.md
     - 09-technology-deep-dives/02-redis.md
     - 09-technology-deep-dives/03-task-queues.md
