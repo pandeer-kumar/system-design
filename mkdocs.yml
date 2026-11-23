@@ -172,3 +172,4 @@ nav:
     - 09-technology-deep-dives/03-task-queues.md
     - 09-technology-deep-dives/04-postgresql-mysql.md
     - 09-technology-deep-dives/05-cassandra-dynamodb.md
+    - 09-technology-deep-dives/06-elasticsearch.md
