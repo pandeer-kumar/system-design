@@ -12,6 +12,7 @@ client ──► postmaster (forks) ──► one backend PROCESS per connection
 background processes: WAL writer, checkpointer, background writer, autovacuum launcher/workers,
                       WAL sender(s) (replication), stats, logical replication workers
 ```
+
 - **Process per connection** (~5–10 MB each). Thousands of connections hurt (memory, context switches, snapshot computation cost grows with connection count). **Use a pooler (PgBouncer)**; aim for a few hundred server connections at most.
 - **Double buffering:** Postgres has `shared_buffers` (typically ~25% of RAM) *and* relies on the OS page cache for the rest.
 - Data files are 8 KB **pages** (heap tables are unordered; indexes are separate structures pointing at heap tuple IDs, the **TID/ctid** = (page, slot)).
@@ -19,6 +20,7 @@ background processes: WAL writer, checkpointer, background writer, autovacuum la
 ## 2. MVCC in Postgres (the key to almost everything)
 
 Every row version (**tuple**) has hidden columns:
+
 - `xmin`: the transaction ID that created this version
 - `xmax`: the transaction ID that deleted/updated it (0 if live)
 
@@ -33,6 +35,7 @@ UPDATE accounts SET balance = 300 WHERE id = 1;   (by txid 105)
 **Visibility:** each statement (Read Committed) or transaction (Repeatable Read) takes a **snapshot**: `xmin_horizon`, `xmax`, and the list of in-progress transaction IDs. A tuple is visible if its `xmin` committed before the snapshot and its `xmax` is absent, aborted, or not yet committed in that snapshot. Commit status lives in the **CLOG** (commit log); **hint bits** cache it on the tuple after first check.
 
 ### Consequences you should be able to explain
+
 1. **Readers never block writers, and writers never block readers.**
 2. **Dead tuples accumulate** → table and index **bloat** → `VACUUM` must reclaim them.
 3. **Long-running transactions are dangerous:** an open transaction (or an idle-in-transaction session, or a stale replication slot) holds back the cleanup horizon, so VACUUM can't remove anything newer, and bloat grows everywhere.
@@ -40,11 +43,13 @@ UPDATE accounts SET balance = 300 WHERE id = 1;   (by txid 105)
 5. **Write amplification** on wide tables with many indexes (this is why Uber famously moved some workloads from Postgres to MySQL in 2016).
 
 ### VACUUM and autovacuum
+
 - `VACUUM` marks dead tuples' space reusable (doesn't shrink the file), updates the **visibility map** (enables index-only scans) and the free space map.
 - `VACUUM FULL` rewrites the table (takes an exclusive lock; avoid in production; use `pg_repack`).
 - **Autovacuum** triggers on `dead tuples > threshold + scale_factor × rows`. On huge, hot tables the default 20% scale factor is far too lazy; set per-table thresholds.
 
 ### Transaction ID wraparound (a real outage class)
+
 - Transaction IDs are 32-bit and compared circularly. Old tuples must be **frozen** (marked "visible to everyone") before 2 billion transactions pass, or they'd appear to be in the future.
 - If freezing falls behind, Postgres **stops accepting writes** to prevent data corruption. (Sentry's 2015 outage and several others.)
 - Prevent it: healthy autovacuum, no long transactions, and monitor `age(datfrozenxid)`.
@@ -69,17 +74,18 @@ UPDATE accounts SET balance = 300 WHERE id = 1;   (by txid 105)
 | HNSW / IVFFlat (pgvector) | Vector similarity |
 
 Features worth naming:
+
 - **Composite index** column order: equality columns first, then range/sort columns.
 - **Covering index** (`INCLUDE (col)`) → index-only scans (if the visibility map is up to date).
 - **Partial index** (`WHERE status = 'pending'`) for queues and soft deletes.
 - **Expression index** (`lower(email)`).
 - **`CREATE INDEX CONCURRENTLY`** to avoid blocking writes.
 - **Exclusion constraint** for "no two bookings overlap for the same room":
-  ```sql
-  ALTER TABLE bookings ADD CONSTRAINT no_overlap
-    EXCLUDE USING gist (room_id WITH =, tstzrange(start_at, end_at) WITH &&);
-  ```
-  This is the clean answer to the phantom/write-skew double-booking problem.
+    ```sql
+    ALTER TABLE bookings ADD CONSTRAINT no_overlap
+      EXCLUDE USING gist (room_id WITH =, tstzrange(start_at, end_at) WITH &&);
+    ```
+    This is the clean answer to the phantom/write-skew double-booking problem.
 
 ## 5. Locks
 
@@ -119,6 +125,7 @@ Features worth naming:
 ## 8. Replication and high availability
 
 ### Physical (streaming) replication
+
 - Replicas replay the primary's WAL byte-for-byte (same major version required). Read-only **hot standbys**.
 - **Async by default:** a failover can lose the most recent commits.
 - **Synchronous:** `synchronous_standby_names = 'ANY 1 (s1, s2)'` (quorum commit). `synchronous_commit` levels: `remote_write` (in standby OS memory), `on` (flushed on standby), **`remote_apply`** (applied, so reads on the standby see it: read-your-writes on replicas).
@@ -126,9 +133,11 @@ Features worth naming:
 - **Replication slots** guarantee WAL is retained until a consumer reads it. **A dead slot retains WAL forever and fills the primary's disk.** Monitor slot lag; set `max_slot_wal_keep_size`.
 
 ### Logical replication / CDC
+
 - Decodes WAL into row changes (`pgoutput`, `wal2json`); publications and subscriptions; cross-version upgrades; selective tables. **Debezium** uses this for CDC to Kafka.
 
 ### HA / failover
+
 - Postgres has no built-in automatic failover. Use **Patroni** (leader key in etcd/Consul/ZooKeeper with a TTL; the holder is primary; others follow; fencing by losing the key → demote), or managed services (RDS Multi-AZ, Aurora, Cloud SQL, AlloyDB).
 - **Aurora:** compute nodes ship only WAL (redo) to a distributed storage layer replicated 6 ways across 3 AZs (write quorum 4/6). Replicas share the storage (lag in ms), failover in ~30 s or less, and storage grows automatically.
 

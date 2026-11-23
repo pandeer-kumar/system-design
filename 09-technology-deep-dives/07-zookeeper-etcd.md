@@ -18,24 +18,29 @@
 ## 2. ZooKeeper
 
 ### Data model
+
 - A hierarchical namespace of **znodes** (`/app/config/db`, `/locks/job-42/lock-0000000017`), each holding small data (≤ 1 MB, keep it to KBs) with a version number.
 - **Persistent** znodes (stay until deleted), **ephemeral** znodes (deleted when the creating session ends), **sequential** znodes (ZooKeeper appends a monotonically increasing counter), **container** and **TTL** znodes.
 
 ### Sessions
+
 - A client keeps a session alive with heartbeats. If the ensemble doesn't hear from it within the **session timeout**, the session expires and its **ephemeral nodes are deleted**.
 - Subtlety: the **client may not know its session expired** (it's partitioned or paused). It must treat a disconnect as "I may have lost my locks" and stop acting until it reconnects and verifies. This is why ephemeral-node locks still need fencing.
 
 ### Watches
+
 - One-time triggers (classic): set on a read (`getData`, `exists`, `getChildren`); fire once on the next change; the client must re-read and re-register. Changes between firing and re-registration are seen through the re-read, not as separate events.
 - **Persistent (recursive) watches** since 3.6 remove the one-shot limitation.
 
 ### ZAB and consistency
+
 - A leader orders all writes (**zxid** = epoch + counter) and commits once a quorum acknowledges. **Writes are linearizable.**
 - **Reads are served locally by whichever server the client is connected to**, so they can be **stale** (sequentially consistent per client: a client never sees time go backward, but may lag other clients). Call **`sync()`** before a read to get an up-to-date view.
 - Ensemble sizes: 3 or 5 voting servers; **observers** (non-voting) scale reads without slowing writes.
 
 ### Classic recipes
 **Lock (fair, no herd effect):**
+
 1. Create ephemeral sequential `/locks/R/lock-` → get `lock-0000000042`.
 2. List children. If yours has the lowest number, you hold the lock.
 3. Otherwise watch **only the node immediately before yours** (not the lowest), and wait. When it's deleted, go to step 2.
@@ -56,16 +61,19 @@ Historically Kafka (until KRaft), HBase, Hadoop HDFS HA, Solr, Pulsar/BookKeeper
 ## 3. etcd
 
 ### Data model and storage
+
 - A **flat key space** (use prefixes like `/registry/pods/default/web-1` for hierarchy) of byte keys and values.
 - **MVCC with a global revision:** every write increments a cluster-wide **revision**. Each key tracks `create_revision`, `mod_revision`, and `version`. Old revisions are kept until **compaction**.
 - Storage: bbolt (B+tree) with an in-memory index. Default quota 2 GB, **recommended max ~8 GB**. After compaction, `defrag` reclaims space.
 - **Raft** for replication; 3 or 5 members; writes go through the leader.
 
 ### Leases
+
 - A **lease** has a TTL; keys can be attached to it. When the lease expires (no `KeepAlive`), all attached keys are deleted atomically.
 - One lease can cover many keys (e.g., all keys owned by one service instance).
 
 ### Watches
+
 - Watch a key or prefix **from a specific revision**. Because history is retained (until compaction), a client that disconnects can **resume exactly where it left off** without missing events. That's a big improvement over ZooKeeper's one-shot watches, and it's how Kubernetes controllers and informers work (list at revision R, then watch from R+1).
 
 ### Transactions (mini compare-and-set language)
@@ -79,10 +87,12 @@ Txn().
 Atomic if/then/else over multiple keys. This is the building block for elections and locks.
 
 ### Consistency of reads
+
 - **Linearizable reads (default):** the server confirms it's up to date with the leader (ReadIndex) before answering. Correct, slightly slower.
 - **Serializable reads** (`WithSerializable()`): served from the local member's state; may be stale; faster, and available even without quorum.
 
 ### Recipes (Go client `concurrency` package)
+
 - **Mutex:** each contender puts a key under `/lock/name/` with its lease; the key with the **lowest create_revision** holds the lock; others watch the key just before theirs (by revision). **Fencing token = the holder's key revision.**
 - **Election:** `Campaign()` / `Resign()` / `Observe()` on the same mechanism.
 - **Leader-with-lease pattern:** the leader must keep its lease alive; if `KeepAlive` fails it must **step down immediately**, and every write it makes to other systems should carry the revision as a fencing token.

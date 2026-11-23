@@ -35,15 +35,18 @@ Five facts to anchor everything:
   ...
   leader-epoch-checkpoint
 ```
+
 - A partition is a sequence of **segments** (default 1 GB, `log.segment.bytes`). Only the last (**active**) segment receives writes.
 - The **index is sparse** (one entry every `index.interval.bytes` ≈ 4 KB). A lookup is a binary search in the index, then a short sequential scan.
 - **Retention deletes whole segments** (`retention.ms`, `retention.bytes`). That's O(1) file deletion, with no per-message cleanup.
 
 ### Record batches
+
 - Producers send **batches**; the broker stores batches **as-is**, still compressed (compression happens once, at the producer).
 - A batch header holds the base offset, producer ID, producer epoch, base sequence, transactional flag, and CRC.
 
 ### Why it's fast
+
 | Technique | Effect |
 |---|---|
 | Sequential append-only writes | Disk throughput near sequential bandwidth even on HDD |
@@ -53,12 +56,14 @@ Five facts to anchor everything:
 | Partitioning | Horizontal parallelism across brokers and disks |
 
 ### Log compaction
+
 - `cleanup.policy=compact`: keep at least the **latest record per key**. Older records with the same key are removed by the background log cleaner.
 - **Tombstone** = a record with a `null` value. It deletes the key after `delete.retention.ms`.
 - The cleaner only touches the "dirty" (uncompacted) portion; `min.cleanable.dirty.ratio` controls how often.
 - Use cases: changelogs (CDC), Kafka Streams state store backups, `__consumer_offsets`, configuration topics. A compacted topic is effectively a **table** that you can rebuild by reading from offset 0.
 
 ### Tiered storage (KIP-405, production-ready in 3.9)
+
 - Old segments are offloaded to object storage (S3/GCS); brokers keep only the recent tail on local disk.
 - Retention can be months or years cheaply, and broker rebalancing moves far less data.
 
@@ -70,11 +75,13 @@ send(record) → serializer → partitioner → RecordAccumulator (per-partition
 ```
 
 ### Partitioning
+
 - **Keyed:** `murmur2(key) % numPartitions`, so the same key always lands in the same partition (as long as the partition count doesn't change).
 - **Keyless:** the **sticky partitioner** (since 2.4) fills a batch for one partition before switching, which gives bigger batches and lower latency than round-robin.
 - A custom partitioner is useful for hot keys (e.g., spreading one huge tenant across sub-partitions).
 
 ### Batching knobs
+
 | Setting | Meaning | Trade-off |
 |---|---|---|
 | `batch.size` (16 KB default) | Max bytes per partition batch | Bigger = throughput, more memory |
@@ -83,6 +90,7 @@ send(record) → serializer → partitioner → RecordAccumulator (per-partition
 | `buffer.memory` | Total accumulator memory | When full, `send()` blocks for `max.block.ms` (backpressure) |
 
 ### Durability knobs
+
 | Setting | Meaning |
 |---|---|
 | `acks=0` | Don't wait. Fastest, may lose data. |
@@ -92,6 +100,7 @@ send(record) → serializer → partitioner → RecordAccumulator (per-partition
 | `retries`, `delivery.timeout.ms` | Retry transient errors until the delivery timeout (2 min default) |
 
 ### Idempotent producer (default since 3.0)
+
 - The broker assigns a **producer ID (PID)**; the producer numbers each batch per partition with a **sequence number**.
 - The broker keeps the last 5 sequence numbers per (PID, partition). A retried duplicate is acknowledged but not appended again; a gap returns `OutOfOrderSequence`.
 - That's why `max.in.flight.requests.per.connection ≤ 5` **keeps ordering** even with retries.
@@ -100,11 +109,13 @@ send(record) → serializer → partitioner → RecordAccumulator (per-partition
 ## 4. The broker and replication protocol
 
 ### Request handling
+
 - **Network threads** (`num.network.threads`) read requests from sockets into a request queue.
 - **I/O threads** (`num.io.threads`) process requests (append to log, read).
 - **Purgatory:** requests that must wait (an `acks=all` produce waiting for replication, a fetch waiting for `fetch.min.bytes`) are parked in a timer wheel until satisfied or timed out.
 
 ### Replication: LEO, HW, ISR
+
 - **LEO (log end offset):** the next offset each replica will write.
 - **Followers fetch** from the leader exactly like consumers (pull-based replication), and report their LEO in each fetch.
 - **High watermark (HW)** = min LEO across the ISR. Records below the HW are **committed**. Consumers can read only up to the HW (so they never see data that could vanish on failover).
@@ -117,16 +128,19 @@ F2       LEO=8    [0..7]      HW = 8 → consumers see offsets 0..7
 ```
 
 ### Why ISR rather than majority quorum?
+
 - A majority quorum with RF=3 tolerates 1 failure. ISR with RF=3 and `min.insync.replicas=2` also tolerates 1 failure **without data loss**, but as long as ISR ≥ 1 and you allow it, it can keep serving reads with a single replica.
 - The real difference: Kafka moves the **"who is in sync" decision** into a consensus-backed controller, so the data path only needs leader → followers, without a quorum vote per record.
 
 ### Leader election and the leader epoch
+
 - When a leader dies, the controller picks a new leader **from the ISR** (preferring the "preferred replica"). Every leadership change increments the **leader epoch**.
 - **Truncation problem:** the HW alone can't safely decide what a recovering replica should truncate. Data can be lost or diverge (KIP-101 fixed real bugs here).
 - **Fix:** on recovery, a follower asks the leader "what was the end offset of epoch N?" and truncates to that point. The leader epoch acts as a **fencing token** for log history.
 - `unclean.leader.election.enable=false` (default): never elect a replica outside the ISR. **Prefer unavailability to data loss.** Setting it to `true` trades acknowledged data for availability.
 
 ### KRaft (controller quorum)
+
 - Kafka 4.0 removed ZooKeeper. A **Raft quorum of controllers** (3 or 5 nodes) stores cluster metadata as a replicated log: `__cluster_metadata`.
 - Brokers **fetch** metadata updates from the controller (like followers), so propagation is incremental and fast, and the cluster supports millions of partitions.
 - **Broker liveness:** brokers heartbeat to the active controller; a broker that misses heartbeats is **fenced**, and leadership moves off it.
@@ -139,16 +153,19 @@ F2       LEO=8    [0..7]      HW = 8 → consumers see offsets 0..7
 ## 5. Consumers and consumer groups
 
 ### Offsets
+
 - Consumers commit offsets to the internal compacted topic `__consumer_offsets`, keyed by (group, topic, partition).
 - The committed offset is "the next record to read," not "the last record processed."
 - `enable.auto.commit=true` commits periodically **in the background**, regardless of whether processing finished. That's at-most-once or at-least-once depending on timing. **Use manual commits** after processing for correctness.
 - `auto.offset.reset=earliest|latest` applies only when there's no committed offset.
 
 ### Group membership and rebalancing
+
 - A **group coordinator** (a broker, chosen by hashing the group ID onto a `__consumer_offsets` partition) manages membership.
 - Consumers send **heartbeats** (background thread) and must call `poll()` within `max.poll.interval.ms` (5 min). Breaking either rule gets them kicked out, which triggers a rebalance.
 
 **Classic protocol** (JoinGroup → SyncGroup):
+
 1. All members re-join; the coordinator picks a leader member.
 2. The leader runs the **assignor** and sends the assignment back via SyncGroup.
 
@@ -167,6 +184,7 @@ F2       LEO=8    [0..7]      HW = 8 → consumers see offsets 0..7
 A consumer pauses (GC) longer than the session timeout. Its partitions are reassigned, but it wakes up and tries to commit. The commit is rejected because the **generation ID** (group epoch) is stale. This is a fencing token again. However, the zombie may already have **produced side effects** (a DB write), which is why processing must be idempotent.
 
 ### Processing patterns
+
 | Pattern | Semantics |
 |---|---|
 | poll → commit → process | At-most-once |
@@ -192,6 +210,7 @@ A consumer pauses (GC) longer than the session timeout. Its partitions are reass
 ## 7. Exactly-once semantics (EOS) internals
 
 Pieces:
+
 1. **Idempotent producer** (§3) removes duplicates from producer retries.
 2. **Transactions** make writes to multiple partitions, **plus the consumer offset commit**, atomic.
 3. **`isolation.level=read_committed`** consumers don't see aborted or still-open transactional data.
@@ -207,6 +226,7 @@ producer.commitTransaction()            → coordinator writes PREPARE_COMMIT to
                                           then writes COMMIT markers into A, B and the offsets partition,
                                           then COMPLETE_COMMIT
 ```
+
 - It's a **2PC whose coordinator log is itself a replicated Kafka partition**, so it doesn't have classic 2PC's blocking problem.
 - **Last stable offset (LSO):** `read_committed` consumers can't read past the first still-open transaction, so a long transaction stalls downstream consumers. Keep transactions short (`transaction.timeout.ms`).
 - **Zombie fencing:** the epoch bump on `initTransactions` means an old instance of the same `transactional.id` gets `ProducerFencedException`.
@@ -221,12 +241,14 @@ partitions ≥ max(target_throughput / per-partition_producer_throughput,
                  target_throughput / per-partition_consumer_throughput,
                  desired consumer parallelism)
 ```
+
 - Rule of thumb: plan ~10 MB/s per partition and size for 2–3 years of growth, because you can't shrink partitions and adding them breaks key ordering.
 - Too many partitions cost memory, file handles, longer leader elections, and slower rebalances. (KRaft clusters handle far more partitions than ZooKeeper-based ones did.)
 
 **Ballpark numbers:** a single broker on modern hardware sustains hundreds of MB/s in and out; end-to-end latency is typically low single-digit ms at moderate load with `linger.ms` ≈ 5, and p99 tens of ms under heavy load.
 
 **Throughput vs latency tuning:**
+
 | Goal | Producer | Consumer | Broker/topic |
 |---|---|---|---|
 | Throughput | `linger.ms` 10–100, `batch.size` 64K–1M, zstd/lz4 | `fetch.min.bytes` large, `max.poll.records` large | More partitions |

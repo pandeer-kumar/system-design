@@ -8,6 +8,7 @@
 clients ──TCP──> event loop (epoll/kqueue) ──> parse command ──> execute against in-memory dataset ──> reply
                  one main thread executes ALL commands, one at a time
 ```
+
 - Commands touch memory only (≈ µs), so the bottleneck is **network I/O and syscalls**, not CPU.
 - **Single-threaded execution means every command is atomic**, with no locks and no context switches. `INCR`, `SET NX`, `LPUSH`, and Lua scripts can't interleave with other commands.
 - **I/O threads** (Redis 6+, `io-threads`) parallelize socket reads/writes and protocol parsing; execution stays single-threaded. Valkey 8 went further with async I/O threading.
@@ -41,11 +42,13 @@ The main dictionary (and large hashes) resize by keeping **two tables** and migr
 ## 3. Expiration and eviction
 
 **Expiration (TTL):**
+
 - **Lazy:** a key is checked on access; if expired, it's deleted then.
 - **Active:** a periodic cycle samples random keys with TTLs and deletes expired ones, repeating while more than ~10% of the sample was expired (bounded CPU time).
 - So expired keys can occupy memory briefly. On replicas, expiration is driven by the primary (it sends `DEL`s), and replicas hide logically expired keys on reads.
 
 **Eviction when `maxmemory` is reached** (`maxmemory-policy`):
+
 | Policy | Evicts |
 |---|---|
 | `noeviction` | Nothing; writes return errors (use for data stores, queues) |
@@ -76,6 +79,7 @@ The main dictionary (and large hashes) resize by keeping **two tables** and migr
 ```
 Primary ──(replication stream: every write command)──> Replica 1, Replica 2
 ```
+
 - **Asynchronous by default.** The primary acknowledges the client **before** replicas receive the write.
 - **Full sync:** the replica sends `PSYNC`; the primary forks, sends an RDB, then streams buffered writes.
 - **Partial resync:** the primary keeps a **replication backlog** (ring buffer). A briefly disconnected replica resumes from its offset if it's still in the backlog; otherwise it does a full sync (expensive, so size the backlog generously).

@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Ingest ad click events (`click_id, ad_id, campaign_id, user_id, ts, ip, country, device`)
 - Query: clicks for `ad_id` over the last M minutes (per-minute granularity), with filters (country, device)
 - Top N most-clicked ads in the last M minutes (per category/region)
 - Data feeds **billing** (advertisers pay per click), so final numbers must be accurate
 
 **Non-functional**
+
 - 1B clicks/day ≈ **10K/s average, 50K/s peak**; 2M active ads
 - Dashboard freshness: a few seconds to a minute
 - **Correctness:** no double counting, no lost clicks (money)
@@ -58,6 +60,7 @@ source(raw_clicks), event time = click ts, watermark = max_ts − 15 s, idleness
 ```
 
 **Exactly-once counting, end to end:**
+
 1. Upstream duplicates (client retries): dedup by `click_id`.
 2. Processing failures: Flink checkpoints (state + Kafka offsets) → replay from the checkpoint is exactly-once for state.
 3. Output duplicates on replay: transactional Kafka sink (committed per checkpoint) **or** idempotent upserts keyed by `(ad_id, window_start)` into the OLAP store.
@@ -85,6 +88,7 @@ A Super Bowl ad gets 20% of all clicks → the `keyBy(ad_id)` subtask for it is 
 ## 9. Deep dive: reconciliation and billing correctness
 
 Real-time numbers are **for dashboards**. Billing uses a **batch recompute** from the raw archive:
+
 - Hourly/daily Spark job over raw clicks in S3: dedup, fraud filtering with fuller information (late-arriving fraud signals), joins with impressions.
 - Compare batch totals vs streaming totals per ad per hour; alert on drift above a threshold (e.g., 0.1%); the batch result **overrides** for invoicing.
 - This is the "Kappa for freshness + batch for truth" pattern, and the honest answer to "how do you guarantee billing accuracy?"

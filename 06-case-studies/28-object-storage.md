@@ -5,10 +5,12 @@
 ## 1. Requirements
 
 **Functional**
+
 - Buckets; `PUT object` (up to 5 TB via multipart), `GET` (including byte ranges), `DELETE`, `LIST` by prefix (paginated)
 - Versioning (optional), lifecycle policies, pre-signed URLs, access control
 
 **Non-functional**
+
 - **Durability: 11 nines** (99.999999999%) per object per year
 - Availability 99.99% for reads
 - **Strong read-after-write consistency** (as S3 provides since 2020), including LIST
@@ -35,6 +37,7 @@ Clients ─► Front-end / API fleet (auth, request routing, signature validatio
 ## 3. Data path
 
 ### PUT (single part)
+
 1. The front end authenticates and computes the target bucket/key.
 2. It streams the bytes to the data service, which splits them into chunks (e.g., 8–64 MB), **erasure-codes** each chunk, and writes the fragments to storage nodes in **different AZs/racks**. It verifies checksums (client-supplied `Content-MD5`/CRC64 + per-fragment checksums).
 3. Only after the data is durable does the front end **commit the metadata** (`key → version → chunk locations, size, checksum, etag`) in the metadata store. **The metadata commit is the linearization point**: the object becomes visible atomically.
@@ -54,6 +57,7 @@ Look up the metadata (latest version, or a specific one) → read the needed fra
 **Erasure coding (Reed-Solomon k + m):** split into k data fragments + m parity fragments; any k reconstruct. E.g., **(10, 4)** → 40% overhead and tolerates 4 lost fragments.
 
 **Placement constraint:** the code must survive losing a whole AZ. With 3 AZs, (10, 4) puts ~5 fragments in each AZ, and losing one AZ removes 5 > 4, so the data is unreadable. Choose parameters where one AZ's share is ≤ m with margin for disk failures. Examples:
+
 - **(9, 6)** across 3 AZs: 5 fragments per AZ; losing an AZ leaves 10 ≥ 9, plus one more disk failure tolerated. Overhead 67%.
 - **(6, 6)**: 4 per AZ; an AZ loss plus 2 more failures tolerated. Overhead 100% (still cheaper than 3× replication).
 - Or keep a cheaper code **within** each AZ and **replicate across** AZs (more overhead, but simpler and faster repair).
@@ -61,6 +65,7 @@ Look up the metadata (latest version, or a specific one) → read the needed fra
 The general rule: **fragments per failure domain ≤ m − (extra failures you want to survive)**.
 
 **What drives the 11 nines:**
+
 - Independent failure domains (disks, hosts, racks, AZs)
 - **Fast repair:** durability depends on how quickly a lost fragment is rebuilt before more fail (MTTR). Repairs read k fragments to rebuild one, so they need bandwidth budgeting; locally repairable codes (LRC, used by Azure) reduce repair reads.
 - **Scrubbing:** background reading of all data to detect silent corruption (bit rot) via checksums, repairing proactively.

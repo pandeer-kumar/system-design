@@ -47,6 +47,7 @@ Core features, and why each one matters:
 ```
 Producer → Exchange ──(binding rules)──> Queue(s) → Consumer
 ```
+
 | Exchange type | Routing |
 |---|---|
 | Direct | Routing key matches the binding key exactly |
@@ -55,12 +56,14 @@ Producer → Exchange ──(binding rules)──> Queue(s) → Consumer
 | Headers | Match on message headers |
 
 ### Reliability mechanisms
+
 - **Publisher confirms:** the broker acknowledges to the publisher once the message is safely stored (and replicated, for quorum queues). Without confirms, a publish can be silently lost.
 - **Consumer acks:** manual `basic.ack` after processing. `basic.nack`/`reject` with `requeue=false` sends the message to the **dead-letter exchange (DLX)**.
 - **Unacked messages** are redelivered when the consumer's channel or connection closes (there's no timeout by default; `consumer_timeout`, 30 min default, kills consumers that hold messages too long).
 - **Prefetch (`basic.qos`)**: max unacked messages per consumer. Low prefetch = fair dispatch and no hoarding; high prefetch = throughput. Start around 10–50 for slow tasks, higher for fast ones.
 
 ### Queue types
+
 | | Classic | **Quorum** (recommended for durability) | Streams |
 |---|---|---|---|
 | Replication | None (mirroring removed in 4.0) | **Raft** across 3/5 nodes | Raft-replicated log |
@@ -69,6 +72,7 @@ Producer → Exchange ──(binding rules)──> Queue(s) → Consumer
 | Use | Transient, low-value | **Default for important work** | Log-style use in RabbitMQ |
 
 ### Delays and TTL
+
 - Per-queue or per-message TTL, plus DLX gives "delayed retry": publish to a wait queue with a TTL, whose DLX routes back to the work queue.
 - The delayed-message plugin supports arbitrary per-message delays (has scale limits).
 
@@ -98,6 +102,7 @@ Tens of thousands of messages/s per node is comfortable. It suits complex routin
 These are **frameworks** on top of a broker.
 
 ### Celery
+
 - Brokers: RabbitMQ (recommended) or Redis (or SQS). Optional **result backend** (Redis, DB) for task return values.
 - **`acks_late=True`**: ack after the task runs (at-least-once) rather than before (at-most-once, the default). Use it with idempotent tasks.
 - **`worker_prefetch_multiplier`**: how many tasks each worker process reserves. Set it to 1 for long tasks, so one worker doesn't hoard tasks while others sit idle.
@@ -106,11 +111,13 @@ These are **frameworks** on top of a broker.
 - Beat scheduler for periodic tasks. It's a single instance; running two means duplicate schedules, so use a lock-based or DB-backed beat.
 
 ### Sidekiq
+
 - Redis lists; extremely efficient (multithreaded Ruby workers).
 - The open-source version uses `BRPOP`, so a worker crash mid-job **loses the job**. Sidekiq Pro's "super fetch" uses `LMOVE` to a per-process working list for reliability.
 - Retries with exponential backoff (25 retries over ~21 days by default), a dead set, and scheduled jobs in a sorted set.
 
 ### BullMQ
+
 - Redis-based (Streams/lists + Lua scripts). Supports delays, priorities, rate limiting, repeatable jobs, flows (parent/child jobs), and stalled-job detection via locks with renewal.
 
 ## 6. Database-backed queues (often the right answer)
@@ -138,6 +145,7 @@ UPDATE jobs SET status = 'running', locked_until = now() + interval '5 min', att
 FROM next WHERE jobs.id = next.id
 RETURNING jobs.*;
 ```
+
 - **Big advantage: transactional enqueue.** Insert the job **in the same transaction** as your business write. No dual-write problem and no outbox needed.
 - A reaper resets `running` jobs whose `locked_until` has passed (worker died).
 - Libraries: **pg-boss** (Node), **River** (Go), **Oban** (Elixir), **GoodJob**/**Solid Queue** (Rails), Graphile Worker; `LISTEN/NOTIFY` for low-latency wakeups.
@@ -160,23 +168,28 @@ RETURNING jobs.*;
 
 ### Fairness and noisy tenants
 One tenant enqueues 10M tasks; everyone else waits behind them.
+
 - **Queue per tenant** (or per tenant tier) with round-robin or weighted fair dequeue across queues.
 - **Per-tenant concurrency limits** (a semaphore per tenant in Redis).
 - **Shuffle sharding** of tenants onto worker pools.
 
 ### Priorities without starvation
+
 - Separate queues per priority, with workers polling high-priority first.
 - Pure strict priority starves low priority under sustained load. Use **weighted** polling (e.g., 6:3:1) or dedicated workers per tier.
 
 ### Long-running tasks
+
 - Heartbeats extend leases; checkpoint progress so a retry resumes rather than restarting.
 - Split them into smaller tasks (chunked fan-out + a completion counter), or use a workflow engine (Temporal) that persists progress.
 
 ### Fan-out / fan-in (map-reduce style)
+
 - The parent enqueues N child tasks plus a counter `remaining = N` (atomic `DECR` in Redis or a DB counter). The child that brings it to 0 enqueues the "finalize" task. Celery chords and BullMQ flows implement this.
 - Make the finalize step idempotent (it can be triggered twice on retries).
 
 ### Scheduled and delayed tasks at scale
+
 - Small delays: the broker's native delay (SQS ≤ 15 min).
 - Large or long delays: a store indexed by run time (a DB index on `run_at`, a Redis sorted set, or a hierarchical **timing wheel** in memory), with a poller moving due tasks into the ready queue. See [job scheduler](../06-case-studies/11-job-scheduler.md).
 
@@ -184,6 +197,7 @@ One tenant enqueues 10M tasks; everyone else waits behind them.
 Most task queues don't order. If needed, use SQS FIFO message groups, a single consumer per key, or version checks in the task ("apply only if newer than the stored version").
 
 ### Autoscaling workers
+
 - Scale on **backlog per worker** or **oldest message age**, not CPU (an I/O-bound worker can sit at low CPU with a huge backlog). KEDA on Kubernetes; target tracking on SQS `ApproximateNumberOfMessagesVisible` / `ApproximateAgeOfOldestMessage`.
 - Scale-in carefully: graceful shutdown so in-flight tasks aren't abandoned.
 

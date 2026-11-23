@@ -5,6 +5,7 @@
 ## Part 1: Apache Cassandra (and ScyllaDB)
 
 ### Architecture recap
+
 - **Leaderless**, peer-to-peer ring with consistent hashing and vnodes; any node can coordinate a request.
 - Replication factor per keyspace and per datacenter (`NetworkTopologyStrategy`, e.g., `{us-east: 3, eu-west: 3}`), rack/AZ-aware placement.
 - Gossip for membership; Phi accrual failure detection; hinted handoff; read repair; anti-entropy repair with Merkle trees.
@@ -31,6 +32,7 @@ coordinator: compare digests; mismatch → full reads → newest wins → read r
 Reads are more expensive than writes; they get slower as the number of SSTables per partition grows (compaction keeps this bounded).
 
 ### Consistency levels (per query)
+
 | Level | Meaning |
 |---|---|
 | `ONE` / `TWO` / `THREE` | That many replicas respond |
@@ -44,6 +46,7 @@ Reads are more expensive than writes; they get slower as the number of SSTables 
 `LOCAL_QUORUM` writes + `LOCAL_QUORUM` reads give read-your-writes within a DC (with the usual quorum caveats: not linearizable under concurrent or failed writes).
 
 ### Lightweight transactions (LWT)
+
 - `INSERT ... IF NOT EXISTS`, `UPDATE ... IF balance = 100`: compare-and-set via **Paxos per partition** (4 round trips in the classic implementation; Cassandra 5 improves with Paxos v2, and Accord transactions are coming).
 - Use them for **uniqueness** (claim a username, a seat) and occasional CAS, not on hot paths.
 
@@ -61,12 +64,14 @@ CREATE TABLE messages_by_conversation (
   PRIMARY KEY ((conversation_id, bucket), message_id)
 ) WITH CLUSTERING ORDER BY (message_id DESC);
 ```
+
 - **Partition key** (inside the inner parentheses) decides placement; **clustering columns** decide sort order within the partition.
 - Every query must specify the full partition key. Range filters only on clustering columns, in order.
 - **Partition size guidance:** keep partitions under ~100 MB and ~100K rows. Unbounded partitions (all messages of a busy channel, all events of a device) cause slow reads, compaction pain, and repair problems. **Bucket by time.**
 - **Secondary indexes** are local (scatter to all nodes) and usually a bad idea at scale; SAI (storage-attached indexes, Cassandra 5) improves this. Materialized views are discouraged (consistency bugs); maintain your own denormalized tables.
 
 ### Tombstones (the classic production trap)
+
 - A delete writes a **tombstone**; it can't remove data immediately, because a replica that missed the delete could resurrect the old value during repair.
 - Tombstones are purged after `gc_grace_seconds` (10 days default) **and** compaction. **Repair must run more often than gc_grace**, or deleted data can come back ("zombie data").
 - Reading a partition with thousands of tombstones is slow; after `tombstone_failure_threshold` (100K) the query fails.
@@ -74,6 +79,7 @@ CREATE TABLE messages_by_conversation (
 - TTL'd data also produces tombstones; use **TimeWindowCompactionStrategy** so whole expired SSTables are dropped.
 
 ### Compaction strategies
+
 | Strategy | Best for | Trade-off |
 |---|---|---|
 | SizeTiered (STCS) | Write-heavy | Up to 2× temporary disk space; more SSTables per read |
@@ -82,6 +88,7 @@ CREATE TABLE messages_by_conversation (
 | Unified (UCS, Cassandra 5) | Adaptive general purpose | Newer |
 
 ### Operating Cassandra
+
 - Run **repair** regularly (incremental, or a tool like Reaper).
 - Keep disk usage under ~50% with STCS (compaction needs room).
 - JVM GC tuning matters (big source of latency spikes) → one reason for ScyllaDB.
@@ -91,12 +98,14 @@ CREATE TABLE messages_by_conversation (
 ## Part 2: Amazon DynamoDB
 
 ### Architecture (from the 2022 USENIX paper)
+
 - **Not** Dynamo-the-paper. DynamoDB is **leader-based**: each partition is a **replication group of 3 replicas across 3 AZs**, using **Multi-Paxos** for leader election; the leader handles writes and strongly consistent reads.
 - **Request routers** look up partition metadata and forward requests; storage nodes hold B-tree data + replication logs.
 - Writes are acknowledged after the leader and a quorum (2 of 3) persist the log record.
 - Eventually consistent reads can be served by any replica (half the cost).
 
 ### Partitions and throughput
+
 - Items are placed by **hash(partition key)**; within a partition, items with the same partition key are sorted by the **sort key** (an "item collection").
 - Per-partition limits: **~3,000 read units/s, ~1,000 write units/s, ~10 GB**. A partition that exceeds them is split.
 - 1 WCU = one write/s of up to 1 KB. 1 RCU = one strongly consistent read/s (or two eventually consistent) up to 4 KB. Transactions cost 2×.
@@ -104,6 +113,7 @@ CREATE TABLE messages_by_conversation (
 - **On-demand** mode (pay per request, scales automatically, with sudden spikes absorbed up to ~2× the previous peak instantly) vs **provisioned** (cheaper at steady load, with auto scaling).
 
 ### Indexes
+
 | | Local secondary index (LSI) | Global secondary index (GSI) |
 |---|---|---|
 | Keys | Same partition key, different sort key | Any partition and sort key |
@@ -124,16 +134,19 @@ GSI1PK=STATUS#PENDING  GSI1SK=2026-11-20#9050   (sparse index for "pending order
 Start from the list of access patterns; design PK/SK and GSIs to satisfy each with one request. (Alex DeBrie's *The DynamoDB Book* is the reference.) Single-table design isn't mandatory; multiple tables are fine when patterns don't need joins.
 
 ### Concurrency features
+
 - **Conditional writes:** `ConditionExpression` (e.g., `attribute_not_exists(pk)` for create-if-absent, `version = :v` for optimistic locking, `stock >= :qty` for safe decrements). This is the primary concurrency tool.
 - **Atomic counters:** `UpdateExpression: ADD views :one` (not idempotent on retry!).
 - **Transactions:** `TransactWriteItems` / `TransactGetItems`, up to 100 items across tables in one region, serializable, with optional idempotency via `ClientRequestToken` (10-minute window). Implemented with a transaction coordinator and timestamp ordering; costs 2×.
 - **Idempotency:** conditional puts keyed by a request ID, or the `ClientRequestToken` for transactions.
 
 ### Streams and integrations
+
 - **DynamoDB Streams:** an ordered, per-item change log (24 h retention), consumed by Lambda or the Kinesis adapter. Use for CDC, materialized views, search indexing, and the outbox pattern ("write the item, stream triggers the publish").
 - **TTL:** free, background expiry of items (within ~a few days, not exact; deletions appear in the stream).
 
 ### Global tables
+
 - Multi-region, **multi-active**, async replication (typically ~1 s), **last-writer-wins** conflict resolution. **Don't use them for uniqueness or invariants** that need cross-region coordination; route such writes to a home region. (AWS added a multi-region strong consistency option in 2025; it costs cross-region latency on writes.)
 
 ### DAX

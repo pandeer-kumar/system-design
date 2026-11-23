@@ -16,6 +16,7 @@
 - **Cluster state** is published by the master to all nodes. Very large cluster states (tens of thousands of shards, huge mappings) slow everything.
 
 ### Master election and split brain
+
 - Before 7.0: `discovery.zen.minimum_master_nodes` had to be set to a majority by hand; misconfiguration caused **split brain** (two masters, divergent data).
 - Since 7.0: a built-in quorum-based coordination layer (Raft-like voting configuration) that manages quorum automatically. Use 3 master-eligible nodes across 3 AZs.
 
@@ -40,6 +41,7 @@ later:
 - **Translog durability:** `index.translog.durability=request` (fsync before ack, default) vs `async` (every 5 s, faster, may lose recent writes on crash).
 
 ### Replication model
+
 - **Primary-backup**, not quorum: the primary waits for all **in-sync copies** (tracked by the master, similar to Kafka's ISR). A failed replica is removed from the in-sync set and re-recovered later.
 - **Sequence numbers** (per-shard `_seq_no`) and **primary terms** (incremented on every primary change: a fencing token) let replicas sync only missing operations after failover, and let the cluster reject operations from a stale primary.
 - `wait_for_active_shards` controls how many copies must be available **before** a write starts (not a quorum ack).
@@ -53,11 +55,13 @@ coordinating node:
   merge → global top N
   FETCH phase: get the actual documents for the top N from the owning shards
 ```
+
 - **Adaptive replica selection** routes to the fastest copy (accounting for queue depth and response time).
 - **Deep pagination is expensive:** page 1,000 with size 10 means every shard returns 10,010 entries. Default limit `index.max_result_window` = 10,000. Use **`search_after`** with a point-in-time (PIT) for deep paging, and the scroll/PIT APIs for exports.
 - **Relevance:** BM25 scoring is computed per shard by default (term statistics are local). With few documents per shard, scores can be inconsistent (`dfs_query_then_fetch` fixes it at a cost).
 
 ### Data structures behind queries
+
 | Structure | Serves |
 |---|---|
 | Inverted index (term dictionary as an FST + posting lists) | Full-text and term queries |

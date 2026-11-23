@@ -5,6 +5,7 @@
 ## 1. Why a stream processor (and not just consumers + a DB)
 
 A plain Kafka consumer updating a DB row per event works until you need:
+
 - **Windows** ("per minute," "last 10 minutes, sliding")
 - **Event time correctness** (events arrive late and out of order from mobile clients)
 - **Large keyed state** (per-user, per-ad counters) without a DB round trip per event
@@ -19,6 +20,7 @@ Flink provides all of these with local state and consistent checkpoints. Alterna
 Source (Kafka, parallelism 8) → map/filter → keyBy(adId) → window(1 min) → aggregate → Sink (DB / Kafka)
        └─ each operator runs as N parallel subtasks; keyBy repartitions (network shuffle) by key hash
 ```
+
 - **JobManager:** schedules the job, coordinates checkpoints, handles failover (HA via ZooKeeper or Kubernetes leader election).
 - **TaskManagers:** worker processes with task slots that run operator subtasks.
 - **keyBy** sends all events with the same key to the same subtask → **single writer per key**, so per-key state needs no locks (the same principle as Kafka partitions and actors).
@@ -36,12 +38,14 @@ Source (Kafka, parallelism 8) → map/filter → keyBy(adId) → window(1 min) �
 
 ### Watermarks
 A **watermark W(t)** is the stream's assertion: "no more events with timestamp ≤ t are expected."
+
 - Typically generated as `max_event_time_seen − allowed_out_of_orderness` (e.g., 5 s) per source partition.
 - An operator's watermark is the **minimum** of its inputs' watermarks, so one idle or slow Kafka partition holds back everything. Use **idleness detection** (`withIdleness`).
 - When the watermark passes a window's end, the window **fires**.
 
 ### Late data
 Events arriving after the watermark passed their window:
+
 - **Drop** them (default),
 - **Allowed lateness:** keep window state for an extra period and emit **updated results** (the sink must handle upserts),
 - **Side output:** route them to a separate stream for correction or auditing.
@@ -63,14 +67,15 @@ Trade-off: a bigger out-of-orderness bound means more complete results but highe
 
 - **Keyed state** (ValueState, ListState, MapState) scoped to the current key; operator state for sources/sinks (e.g., Kafka offsets).
 - **State backends:**
-  - **HashMap** (on the JVM heap): fastest, limited by memory.
-  - **RocksDB** (embedded LSM on local disk): state far larger than memory (TBs per job); slower access; supports **incremental checkpoints**.
+    - **HashMap** (on the JVM heap): fastest, limited by memory.
+    - **RocksDB** (embedded LSM on local disk): state far larger than memory (TBs per job); slower access; supports **incremental checkpoints**.
 - **State TTL** to expire per-key state (e.g., dedup sets) so it doesn't grow forever.
 - **Rescaling:** keys are grouped into **key groups** (max parallelism, e.g., 128 or 32,768); changing parallelism reassigns whole key groups from a savepoint. Set max parallelism high enough up front.
 
 ## 6. Fault tolerance and exactly-once
 
 ### Checkpoints (asynchronous barrier snapshotting, a Chandy-Lamport variant)
+
 1. The JobManager injects **checkpoint barriers** into every source partition.
 2. When an operator has received the barrier on **all** inputs (**alignment**), it snapshots its state asynchronously to durable storage (S3/HDFS) and forwards the barrier.
 3. When all sinks acknowledge, the checkpoint is complete: it includes **source offsets + all operator state**, consistent with each other.
@@ -82,6 +87,7 @@ Trade-off: a bigger out-of-orderness bound means more complete results but highe
 
 ### End-to-end exactly-once
 Internal state is exactly-once; **output** is the hard part, because replay re-emits results. Options:
+
 1. **Transactional sink (two-phase commit):** the Kafka sink writes in a Kafka transaction per checkpoint; it **pre-commits** on the barrier and **commits** when the checkpoint completes. Downstream `read_committed` consumers see results only after commit (latency ≈ checkpoint interval).
 2. **Idempotent sink:** upsert by a deterministic key (`ad_id, window_start`) so replays overwrite the same rows. Simpler and usually preferred for DB sinks.
 3. At-least-once + downstream dedup.

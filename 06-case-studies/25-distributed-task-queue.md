@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - `CreateQueue`, `SendMessage(queue, body, delay?, group_id?, dedup_id?)`
 - `ReceiveMessage(queue, max=10, wait_seconds, visibility_timeout)` → messages + receipt handles
 - `DeleteMessage(receipt_handle)` (ack), `ChangeVisibility(receipt_handle, seconds)` (heartbeat)
@@ -12,6 +13,7 @@
 - Delayed delivery (seconds to hours), optional FIFO per message group
 
 **Non-functional**
+
 - Multi-tenant; millions of queues; a single hot queue may need 100K+ msgs/s
 - **Durability:** an acknowledged `SendMessage` is never lost (survives an AZ failure)
 - **At-least-once** delivery (exactly-once only within constraints for FIFO)
@@ -50,6 +52,7 @@ Background: DLQ mover, retention sweeper, partition rebalancer/splitter, metrics
 ## 5. Deep dive: storage and durability of a partition
 
 **Write path (`SendMessage`):**
+
 1. The front end picks a partition: random or least-loaded for Standard queues (any partition can hold any message); `hash(group_id)` for FIFO.
 2. Partition leader appends the message to its **replicated log** (WAL) and waits for a **quorum** (2 of 3 replicas in different AZs) to persist it.
 3. Only then does it reply 200 → durable ack.
@@ -64,6 +67,7 @@ Alternative: store messages in a replicated KV store (e.g., a Raft-backed RocksD
 ## 6. Deep dive: receive, visibility timeout, ack (the concurrency core)
 
 **Receive:**
+
 1. The front end picks partitions (round-robin across the queue's partitions, skipping empty ones).
 2. The partition leader pops up to N messages from the ready index whose `visible_at ≤ now`, sets `visible_at = now + visibility_timeout`, increments `receive_count` and `attempt`, and appends this state change to the log (replicated) **before** returning. Otherwise, a leader crash would forget that the message was handed out, which is safe (just a duplicate) but should be bounded.
 3. Puts them into the **in-flight timer wheel** keyed by `visible_at`.
