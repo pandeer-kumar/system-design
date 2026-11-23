@@ -1,38 +1,13 @@
-/* Layout for the published site: table of contents on the left, page on the right. */
+/* Small tweaks on top of the Material theme's default layout. */
 
-/* Two columns: hide the right-hand "on this page" headings sidebar. */
-@media screen and (min-width: 60em) {
-  /* Same selector Material uses to show it, so this rule wins. */
-  .md-sidebar--secondary:not([hidden]) {
-    display: none;
-  }
-}
-
-/* Use more of wide screens, and give the left table of contents room so titles fit on one line. */
-.md-grid {
-  max-width: 92rem;
-}
-@media screen and (min-width: 76.25em) {
-  .md-sidebar--primary {
-    width: 16rem;
-  }
-  /* Let the list fill the wider sidebar (Material pads the inner box on the right). */
-  .md-sidebar--primary .md-sidebar__inner {
-    padding-right: 0.8rem;
-  }
-}
-
-/* Section names in the left table of contents read as headings. */
-.md-nav--primary .md-nav__item--section > .md-nav__link {
-  margin-top: 1.1em;
-  font-weight: 700;
-  color: var(--md-default-fg-color);
-}
-.md-nav--primary .md-nav__item--section > .md-nav__link a {
-  color: inherit;
-}
-
-/* Make the page you're on easy to spot. */
+/* Make the page you're on easy to spot in the left table of contents. */
 .md-nav--primary .md-nav__link--active {
   font-weight: 700;
+}
+
+/* The home page is itself a table of contents, so don't repeat its headings
+   under "Home" in the sidebar. "Home" is the first item in the navigation;
+   its nested heading list only exists while you're on the home page. */
+.md-nav--primary > .md-nav__list > .md-nav__item:first-child > .md-nav--secondary {
+  display: none;
 }
