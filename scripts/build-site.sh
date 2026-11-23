@@ -10,6 +10,7 @@ rm -rf build/docs
 mkdir -p build/docs
 cp README.md build/docs/
 cp -r [0-9][0-9]-*/ build/docs/
+cp -r docs-theme/. build/docs/   # site-only assets (stylesheets)
 
 if [[ "${1:-}" == "serve" ]]; then
   # Re-copy on change is not automatic; rerun the script after editing files.
