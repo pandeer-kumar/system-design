@@ -25,6 +25,7 @@ DELETE /v1/orders/{id}             delete (idempotent)
 | POST, PATCH | ❌ | ❌ (unless you make them idempotent) |
 
 ### Status codes that matter
+
 - `200/201/202` (202 Accepted = async processing, return a job ID)
 - `400` bad input, `401` unauthenticated, `403` unauthorized, `404`, `409 Conflict` (version mismatch, duplicate), `412 Precondition Failed` (If-Match failed)
 - `429 Too Many Requests` (+ `Retry-After`)

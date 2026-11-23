@@ -5,6 +5,7 @@
 ## Why distributed locks are hard
 
 Locally, if a thread holding a lock dies, the process dies with it and the lock is gone. In a distributed system:
+
 - The lock holder can **crash** while holding the lock, so locks need **expiry (leases)**.
 - The lock holder can **pause** (GC, VM migration, page fault, CPU starvation) for longer than the lease. The lease expires, someone else gets the lock, the original holder wakes up **still believing it holds the lock**, and now two holders exist.
 - **Clocks drift**, so lease expiry measured on different machines disagrees.
@@ -18,6 +19,7 @@ Locally, if a thread holding a lock dies, the process dies with it and the lock 
 ## Leases
 
 A **lease** is a lock with a time limit. The holder must renew (heartbeat) before expiry.
+
 - Lease too short: false expirations under load or GC.
 - Lease too long: slow recovery after a crash.
 - Typical: 10–30s, with renewal every TTL/3.
@@ -47,6 +49,7 @@ Client 1: write(token=33)  → storage REJECTS (33 < 34)
 ```
 
 Sources of fencing tokens:
+
 - ZooKeeper: `zxid` or the znode's version / sequential node number
 - etcd: the key's `mod_revision` or the lease's revision
 - A DB sequence
@@ -66,16 +69,19 @@ if redis.call("GET", KEYS[1]) == ARGV[1] then
     return redis.call("DEL", KEYS[1])
 else return 0 end
 ```
+
 - The **random value** ensures you only delete your own lock (not one re-acquired by someone else after your lease expired).
 - **Problem:** Redis replication is async. The primary grants the lock, crashes before replicating, the replica is promoted, and another client acquires the same lock.
 - **Good for efficiency locks. Not for correctness.**
 
 ### 2. Redlock (Redis, N independent masters)
+
 - Acquire on a majority (e.g., 3 of 5) of independent Redis nodes within a time bound.
 - **Controversial.** Kleppmann's critique: it relies on timing assumptions (bounded clock drift, bounded pauses) and provides **no fencing token**. Antirez (Redis author) disagrees.
 - Interview stance: "Redlock is still timing-dependent and has no fencing, so for correctness-critical locks I'd use a consensus system like etcd or ZooKeeper with fencing tokens."
 
 ### 3. ZooKeeper
+
 - Create an **ephemeral sequential** znode `/locks/res/lock-0000000042`.
 - The lowest sequence number holds the lock. Others **watch the node just before theirs** (not the lowest, to avoid a herd effect).
 - Ephemeral nodes vanish when the session expires (client crash or partition).
@@ -83,6 +89,7 @@ else return 0 end
 - Linearizable writes through ZAB consensus.
 
 ### 4. etcd
+
 - Create a key with a lease: `Put(key, val, WithLease(leaseID))` in a transaction `If(CreateRevision(key) == 0)`.
 - `concurrency.Mutex` in the Go client implements a fair queue by revision.
 - Lease keepalives; when the lease expires the key is deleted.
@@ -90,15 +97,17 @@ else return 0 end
 - Raft-backed, linearizable.
 
 ### 5. Database locks
+
 - **Row lock** (`SELECT ... FOR UPDATE` on a locks table), **advisory locks** (Postgres), or a **lease row**:
-  ```sql
-  UPDATE leases SET owner=:me, expires_at=now()+interval '30s', token=token+1
-  WHERE name='job-x' AND (expires_at < now() OR owner=:me)
-  RETURNING token;
-  ```
-  The `token` column is the fencing token. Simple and often good enough if you already have a strongly consistent DB.
+    ```sql
+    UPDATE leases SET owner=:me, expires_at=now()+interval '30s', token=token+1
+    WHERE name='job-x' AND (expires_at < now() OR owner=:me)
+    RETURNING token;
+    ```
+    The `token` column is the fencing token. Simple and often good enough if you already have a strongly consistent DB.
 
 ### 6. Chubby (Google)
+
 - The original lock service (paper, 2006). Paxos-based, coarse-grained, long-lived locks with **sequencers** (fencing tokens). Mostly used for leader election and storing small metadata. Bigtable and GFS used it.
 
 ## Comparison

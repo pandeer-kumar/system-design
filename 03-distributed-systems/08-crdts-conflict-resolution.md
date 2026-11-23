@@ -20,6 +20,7 @@ When replicas accept writes independently (multi-leader, leaderless, offline cli
 A CRDT guarantees **strong eventual consistency**: replicas that have received the same set of updates are in the same state, regardless of order or duplication.
 
 ### Two families
+
 - **State-based (CvRDT):** replicas send their whole state; merge = **join** in a semilattice (commutative, associative, idempotent). Tolerates duplicates and reordering. Larger messages (delta-CRDTs mitigate this).
 - **Operation-based (CmRDT):** replicas send operations; operations must commute; requires reliable causal delivery (exactly-once, causal order).
 
@@ -45,15 +46,18 @@ An add set plus a remove set (tombstones). Once removed, it can never be re-adde
 Each element has add and remove timestamps; the higher one wins. Simple, but has clock issues.
 
 #### OR-Set (Observed-Remove Set): the important one
+
 - Each add gets a **unique tag**. Remove deletes only the tags **observed** at the remover.
 - Concurrent add and remove: **add wins** (the new tag wasn't observed by the remove).
 - This fixes the Dynamo cart resurrection problem correctly.
 
 #### LWW-Register, MV-Register
+
 - LWW-Register: one value, latest timestamp wins.
 - MV-Register (multi-value): keeps all concurrent values (like Dynamo siblings).
 
 #### Sequence CRDTs (for text editing)
+
 - **RGA, Logoot, LSEQ, Treedoc, YATA (Yjs), Fugue:** each character gets a unique, ordered ID, so concurrent inserts at the same position are ordered deterministically.
 - Used by Yjs, Automerge, and many collaborative editors.
 - Challenges: metadata overhead (IDs per character, tombstones), interleaving anomalies (fixed by Fugue).
@@ -62,6 +66,7 @@ Each element has add and remove timestamps; the higher one wins. Simple, but has
 Nested CRDTs (Automerge provides a JSON CRDT).
 
 ### CRDT costs and limits
+
 - **Metadata growth:** tombstones and per-replica entries. Garbage collection needs coordination (all replicas have seen the delete).
 - **Can't enforce global invariants** (uniqueness, non-negative balance), because those need coordination. The CALM theorem: **monotonic** programs don't need coordination; non-monotonic ones (involving negation or thresholds) do.
 - Semantics may surprise users (add-wins vs remove-wins choices).

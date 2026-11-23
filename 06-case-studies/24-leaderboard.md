@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Update a player's score (incremental or set-high-score) after a match
 - Top N players (global, per region, per friend group)
 - A player's own rank and the players around them
 - Time-scoped boards (daily, weekly, season)
 
 **Non-functional**
+
 - 100M players, 10M DAU; 50K score updates/s at peak
 - Rank queries < 100ms; leaderboard updates visible within seconds
 
@@ -27,14 +29,17 @@
 ## 3. Scaling beyond one node
 
 **Option A: Shard by score range**
+
 - Shard 1: scores 0–1,000, shard 2: 1,000–10,000, ... Top N reads from the highest shard. Rank = count of players in higher shards (cached counts) + rank within the shard.
 - Players move between shards when their score crosses a boundary (move = remove + add). Skewed distribution means uneven shards, so tune the boundaries.
 
 **Option B: Shard by player (hash), scatter-gather for the top N**
+
 - Each shard keeps its own sorted set. Top N = top N from each shard → merge (K shards × N items).
 - **Exact rank is hard:** you need the sum over shards of `ZCOUNT(score > mine)`. A K-way query, acceptable for a few shards.
 
 **Option C: Approximate rank for the long tail**
+
 - Exact rank for the top 10K (single sorted set of top players); for everyone else, compute an approximate rank from a **score histogram** (bucket counts → percentile: "Top 12%"). Most games do this.
 
 ## 4. Durability and source of truth

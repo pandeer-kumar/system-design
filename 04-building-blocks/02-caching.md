@@ -31,6 +31,7 @@ def update(key, v):
     db.write(key, v)
     cache.delete(key)    # delete, don't set (avoids some races)
 ```
+
 - ✅ Only caches what's requested; cache failure ≠ outage (falls back to DB, if the DB can take it).
 - ❌ Misses are slow (3 trips); stale data possible; race conditions (below).
 
@@ -39,11 +40,13 @@ The cache library loads from the DB on a miss (the app talks only to the cache).
 
 ### Write-through
 Write to the cache **and** the DB synchronously.
+
 - ✅ Cache always fresh for written keys.
 - ❌ Write latency increases; caches data that may never be read.
 
 ### Write-behind (write-back)
 Write to the cache, then asynchronously flush to the DB.
+
 - ✅ Very fast writes; can coalesce many writes (counters).
 - ❌ **Data loss** if the cache dies before flushing; complex consistency.
 - Good for: counters, analytics, view counts.
@@ -72,6 +75,7 @@ Proactively refresh hot keys before expiry.
 5. Reader: sets cache = v1      ← stale until TTL
 ```
 **Fixes:**
+
 - **Leases (Facebook memcache):** on a miss, the server hands out a lease token. `SET` requires a valid lease; a `DELETE` invalidates outstanding leases, so step 5 is rejected.
 - **Delayed double delete:** delete, and delete again after ~500ms–1s.
 - **Version-checked set:** store a version with the value and `SET` only if newer (Lua script).
@@ -92,6 +96,7 @@ The cache stays stale. **Fixes:** retry the delete via a queue, CDC-based invali
 A hot key expires and thousands of concurrent requests recompute it.
 
 **Fixes:**
+
 - **Single-flight / request coalescing:** one in-flight recompute per key per process; the rest await it.
 - **Distributed mutex:** `SET lock:k NX PX 3000`; losers wait briefly and re-check, or serve stale.
 - **Stale-while-revalidate:** keep a soft TTL (logical expiry inside the value) and a hard TTL; past the soft TTL, one request refreshes and the others get the stale value.
@@ -104,6 +109,7 @@ A hot key expires and thousands of concurrent requests recompute it.
 One key (a celebrity profile, a viral post) receives so much traffic it saturates one cache node.
 
 **Fixes:**
+
 - **Local in-process cache** (L1) in front of Redis (L2) for the hottest keys (a short TTL like 1–5s keeps it fresh enough)
 - **Key replication:** store `k#1..k#N` on different shards; readers pick randomly; writers update all
 - **Hot key detection:** client-side sampling, Redis `--hotkeys` (LFU), proxy-level top-K

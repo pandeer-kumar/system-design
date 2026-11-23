@@ -16,11 +16,13 @@ Mention observability in every design. It's a strong senior signal.
 ## What to measure
 
 ### RED method (request-driven services)
+
 - **R**ate (requests/sec)
 - **E**rrors (failed requests/sec or %)
 - **D**uration (latency histogram: p50, p95, p99, p99.9)
 
 ### USE method (resources: CPU, disk, network, pools)
+
 - **U**tilization
 - **S**aturation (queue length, wait time)
 - **E**rrors
@@ -29,6 +31,7 @@ Mention observability in every design. It's a strong senior signal.
 Latency, traffic, errors, saturation.
 
 ### System-specific key metrics
+
 | Component | Metrics |
 |---|---|
 | Queue/Kafka | **Consumer lag**, age of oldest message, DLQ size, throughput |
@@ -45,6 +48,7 @@ Latency, traffic, errors, saturation.
 - **Error budget:** 1 − SLO. At 99.9%, that's 43 min/month. **When the budget is spent, freeze risky launches and focus on reliability.** This aligns velocity with reliability.
 
 ### Alerting
+
 - **Alert on symptoms (SLO burn), not causes.** "Users are getting errors" beats "CPU is 80%."
 - **Multi-window, multi-burn-rate alerts:** page if burning budget 14× faster than sustainable over 1h (and 5m to confirm); ticket for slower burns.
 - Every page must be **actionable** and have a runbook.

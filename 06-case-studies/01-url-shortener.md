@@ -5,11 +5,13 @@
 ## 1. Requirements
 
 **Functional**
+
 - Shorten a long URL → short code (`sho.rt/aB3xY9k`)
 - Redirect short → long
 - Optional: custom aliases, expiration, analytics (click counts)
 
 **Non-functional**
+
 - Read-heavy (100:1)
 - Redirect latency p99 < 50ms
 - High availability for redirects (99.99%). A broken link is very visible.
@@ -59,6 +61,7 @@ Client → CDN/edge cache → LB → Redirect service → Redis cache → DB
 **Recommended:** counter ranges (or Snowflake IDs) + **a bijective scramble** before base62 (e.g., multiply by a large odd constant mod 62^7, or a small Feistel network). You get collision-free codes without per-request coordination, and they're not trivially enumerable.
 
 **Concurrency points:**
+
 - Custom aliases: `INSERT ... IF NOT EXISTS` / unique PK. Never check-then-insert.
 - KGS: two servers must not claim the same batch, so use `UPDATE ... SET claimed_by=? WHERE batch_id=? AND claimed_by IS NULL`, or `SKIP LOCKED`.
 - Range leasing: atomic increment on the counter row (or etcd/ZooKeeper).

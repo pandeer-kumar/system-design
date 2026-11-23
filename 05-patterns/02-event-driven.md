@@ -55,18 +55,21 @@ Account 42:
 ```
 
 ### Mechanics
+
 - **Event store:** append-only, per-aggregate stream with **optimistic concurrency**: `append(stream=account-42, expected_version=3, events=[...])` fails if the version ≠ 3. That's how concurrent commands on one aggregate are serialized.
 - **Snapshots:** periodically store the state at version N to avoid replaying thousands of events.
 - **Projections:** build read models from events (CQRS read side).
 - **Replay:** rebuild projections from scratch, or create new ones from history.
 
 ### Benefits
+
 - Complete **audit log** (finance, compliance)
 - **Time travel:** state at any point in the past
 - Debugging: reproduce bugs by replaying events
 - New read models from historical data
 
 ### Costs and pitfalls
+
 - **Schema evolution of events is forever.** Old events must remain readable (upcasters).
 - **GDPR "right to be forgotten"** conflicts with immutability. Use crypto-shredding (encrypt PII per user and delete the key).
 - Querying current state needs projections.

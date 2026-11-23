@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Browse events and view the seat map with availability
 - Select specific seats (reserved seating) or quantity (general admission)
 - **Hold** seats for ~10 minutes while the user pays
 - Confirm the booking on successful payment; release on timeout or failure
 
 **Non-functional**
+
 - **Never double-book a seat** (strong consistency for seat state)
 - Handle flash crowds: **millions of users** hitting one event at on-sale time
 - Seat map can be slightly stale (seconds), but booking must be correct
@@ -54,6 +56,7 @@ SELECT * FROM seats WHERE event_id=? AND seat_id IN (...) ORDER BY seat_id FOR U
 UPDATE seats SET status='HELD', hold_id=?, held_until=now()+interval '10 min' WHERE ...;
 COMMIT;
 ```
+
 - ✅ Correct; handles multi-seat atomically. `ORDER BY seat_id` avoids deadlocks.
 - ❌ Blocking under heavy contention; lock waits pile up.
 - Use `NOWAIT` / `SKIP LOCKED` to fail fast: "seat just got taken."
@@ -66,6 +69,7 @@ WHERE event_id=:e AND seat_id IN (:s1,:s2)
   AND (status='AVAILABLE' OR (status='HELD' AND held_until < now()));
 -- rows_affected must equal number of seats requested; else rollback (partial = fail)
 ```
+
 - ✅ Single statement, no explicit locks held across round trips; the DB serializes per row.
 - ✅ Expired holds are reclaimed lazily inside the same condition.
 - For multiple seats, wrap in a transaction and roll back if `rows_affected < n`.
@@ -75,6 +79,7 @@ WHERE event_id=:e AND seat_id IN (:s1,:s2)
 SET seat:{event}:{seat} hold_id NX EX 600      # one seat
 -- multi-seat: Lua script checks all keys free, then sets all (atomic)
 ```
+
 - ✅ ~100K+ ops/s per shard; TTL gives automatic expiry.
 - ❌ Redis isn't the system of record (async replication → failover could lose holds → potential double hold). Mitigate: **the DB confirms at booking time** with a conditional update (Redis = fast admission filter, DB = final arbiter), or use a stronger store.
 
@@ -83,9 +88,11 @@ SET seat:{event}:{seat} hold_id NX EX 600      # one seat
 INSERT INTO seat_claims(event_id, seat_id, hold_id, expires_at) VALUES (...);
 -- UNIQUE(event_id, seat_id): second insert fails
 ```
+
 - Expired claims need cleanup before a re-claim (delete expired rows first, or use a conditional upsert).
 
 **Option 5: Single writer per event (actor / partition)** for the mega on-sale
+
 - Route every hold request for event E to **one partition/actor** owning E's seat map **in memory**, processing requests sequentially (thousands to millions per second in memory), persisting decisions to the DB/log.
 - ✅ No lock contention at all; deterministic; fair ordering.
 - ❌ Need failover for the actor (leader election, state rebuilt from the log); a single event is bounded by one core, which is still plenty for 50K seats.
@@ -109,6 +116,7 @@ INSERT INTO seat_claims(event_id, seat_id, hold_id, expires_at) VALUES (...);
 ```
 
 **Critical edge case: payment succeeds after the hold expired.**
+
 - Option A: extend holds slightly beyond the payment provider's timeout; once payment starts, mark the hold `PAYMENT_PENDING` (not expirable) with a hard cap.
 - Option B: if confirmation fails, refund automatically (saga compensation) and apologize.
 - Use **authorize → confirm seats → capture** (an authorization is a reservation of funds). If seat confirmation fails, void the authorization (no refund needed).
@@ -122,6 +130,7 @@ You can't let 10M users hit the booking service at once.
 ```
 Users → CDN → Waiting Room service → (admitted at controlled rate) → Booking flow
 ```
+
 - At on-sale, users get a **queue position** (random or arrival order, with token-based fairness).
 - The waiting room admits N users/minute based on downstream capacity (seats left, booking throughput).
 - Admitted users get a **signed, time-limited access token** (JWT) required by the booking APIs, so bots can't skip the queue.
@@ -140,14 +149,15 @@ Users → CDN → Waiting Room service → (admitted at controlled rate) → Boo
 ## 8. General admission (quantity-based)
 
 No specific seats: inventory is a count.
+
 - `UPDATE inventory SET available = available - :n WHERE event_id=? AND tier=? AND available >= :n`
 - Hot row! For a huge GA event, **split inventory into N buckets** (rows), pick a random bucket, decrement; on failure try others. Or **pre-generate ticket tokens** and claim with `SKIP LOCKED`:
-  ```sql
-  UPDATE tickets SET hold_id=:h, held_until=...
-  WHERE id IN (SELECT id FROM tickets WHERE event_id=? AND status='AVAILABLE'
-               LIMIT :n FOR UPDATE SKIP LOCKED)
-  ```
-  Concurrent buyers grab **different** rows, so there's no contention. This is an excellent pattern to mention.
+    ```sql
+    UPDATE tickets SET hold_id=:h, held_until=...
+    WHERE id IN (SELECT id FROM tickets WHERE event_id=? AND status='AVAILABLE'
+                 LIMIT :n FOR UPDATE SKIP LOCKED)
+    ```
+    Concurrent buyers grab **different** rows, so there's no contention. This is an excellent pattern to mention.
 
 ## 9. Architecture
 
@@ -161,6 +171,7 @@ Client → CDN (static, waiting room) → API Gateway (rate limit, bot detection
    ├── Payment Service (idempotent, PSP integration, webhooks)
    └── Notification Service (email tickets, consumes BookingConfirmed)
 ```
+
 - **Partition the seats DB by event_id.** All seats of an event on one shard means multi-seat holds are single-shard transactions.
 
 ## 10. Failure modes

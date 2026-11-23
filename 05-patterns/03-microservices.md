@@ -43,6 +43,7 @@ See [03-distributed-systems/09-membership-gossip.md](../03-distributed-systems/0
 ## Service mesh
 
 A **sidecar proxy** (Envoy) next to every service instance, configured by a **control plane** (Istio, Linkerd, Consul Connect).
+
 - **mTLS** between services (zero-trust identity, SPIFFE)
 - Retries, timeouts, circuit breaking, outlier detection
 - Traffic shifting (canary, blue/green), fault injection

@@ -9,6 +9,7 @@
 - Use: ETL, reports, ML training data, backfills, reconciliation.
 
 ### Joins at scale
+
 - **Sort-merge join:** both sides sorted by key.
 - **Broadcast (map-side) join:** a small table is copied to every worker.
 - **Skew handling:** salt hot keys, split them, and handle them separately.
@@ -19,16 +20,18 @@
 - Engines: **Apache Flink** (the leader in stateful streaming), Kafka Streams, Spark Structured Streaming (micro-batch), Google Dataflow / Apache Beam, Apache Samza.
 
 ### Core concepts
+
 - **Event time vs processing time:** the time the event happened vs the time it's processed. Use event time for correctness.
 - **Windows:**
-  - **Tumbling:** fixed, non-overlapping (every 1 min)
-  - **Sliding/hopping:** overlapping (5-min window every 1 min)
-  - **Session:** activity-based, closed after an inactivity gap
+    - **Tumbling:** fixed, non-overlapping (every 1 min)
+    - **Sliding/hopping:** overlapping (5-min window every 1 min)
+    - **Session:** activity-based, closed after an inactivity gap
 - **Watermarks:** "I believe I've seen all events up to time T." Triggers window computation. Late events (after the watermark) can be dropped, sent to a side output, or used to update results (allowed lateness).
 - **State:** per-key state (counts, aggregates) stored locally (RocksDB in Flink), partitioned by key, checkpointed.
 - **Exactly-once state:** Flink's **distributed snapshots** (Chandy-Lamport-style barriers through the stream) checkpoint operator state and source offsets consistently. On failure, restore the checkpoint and replay from those offsets. Exactly-once **end to end** additionally needs transactional or idempotent sinks (two-phase commit sinks).
 
 ### Stream joins
+
 - **Stream-stream:** within a time window (click joined with impression within 10 min).
 - **Stream-table:** enrich events with the latest table state (a CDC changelog materialized as a table).
 
@@ -39,6 +42,7 @@
 Raw data ──┤                                                         ├→ Serving layer (merge)
            └→ Speed layer (real-time, approximate)  → RT views ─────┘
 ```
+
 - ✅ Accurate batch results plus low-latency approximate ones.
 - ❌ **Two codebases** for the same logic; merging complexity.
 
@@ -48,6 +52,7 @@ Raw data ──┤                                                         ├�
 Raw data → Durable log (Kafka, long retention) → Stream processor → Serving views
 Reprocessing = replay the log with a new job version → swap
 ```
+
 - ✅ One codebase, one paradigm.
 - ❌ Requires long log retention (tiered storage) and a robust stream processor; heavy historical reprocessing can be slow.
 - **The modern default:** streaming-first, with a lakehouse for historical analytics.

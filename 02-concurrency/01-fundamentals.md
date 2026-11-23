@@ -41,6 +41,7 @@ if not seat.is_booked():     # check
 Fixes: make check-and-act **atomic** (conditional write, compare-and-swap, unique constraint, lock).
 
 ### Data race vs race condition
+
 - **Data race:** two threads access the same memory concurrently, at least one writes, with no synchronization. Undefined behaviour in C/C++, Go, and Rust (Rust prevents it at compile time).
 - **Race condition:** a logic-level timing bug. Can exist even with no data races (for example, every access is individually atomic but the sequence isn't).
 
@@ -53,6 +54,7 @@ Three separate problems:
 3. **Ordering:** compilers and CPUs reorder instructions. Another thread might see `ready = true` before `data = 42`.
 
 ### Memory models (senior-level awareness)
+
 - A **memory model** defines which reorderings are allowed and what "happens-before" means.
 - **Happens-before:** if A happens-before B, A's effects are visible to B. Established by locks (unlock → lock), volatile/atomic writes → reads, thread start/join, and channel send → receive.
 - **Java:** `volatile` gives visibility and ordering but not compound atomicity. `synchronized` and `java.util.concurrent` give all three.
@@ -97,6 +99,7 @@ do {
 - **Hot rows / hot keys:** the distributed version. One DB row taking all the writes (a global counter, a popular item's stock).
 
 ### Ways to reduce contention (in order of preference)
+
 1. **Don't share.** Partition the data so each piece has a single owner (thread confinement, sharding by key).
 2. **Immutable data.** Readers need no synchronization (copy-on-write, persistent data structures, event logs).
 3. **Shard the contended resource.** Striped locks, sharded counters.

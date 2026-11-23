@@ -7,6 +7,7 @@
 **Functional:** `get`, `set` (with TTL), `delete`; optionally atomic `incr`, CAS.
 
 **Non-functional**
+
 - 10M+ ops/s across the cluster; sub-millisecond p99 latency
 - TBs of RAM across hundreds of nodes
 - Scale out without downtime; tolerate node failures (the cache may lose data, but must not cause an outage)
@@ -23,6 +24,7 @@
 **Consistent hashing with virtual nodes** (see [03-distributed-systems/04-partitioning.md](../03-distributed-systems/04-partitioning.md)), or **fixed hash slots** (Redis Cluster: 16,384 slots assigned to nodes; moving a slot = migrating its keys).
 
 **Routing options:**
+
 | | Client-side (smart client) | Proxy (Twemproxy, mcrouter, Envoy) | Server redirect (Redis Cluster MOVED/ASK) |
 |---|---|---|---|
 | Latency | Best (direct) | +1 hop | Direct after topology learned |

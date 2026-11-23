@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Rider requests a ride (pickup, dropoff) and sees an ETA and price
 - Match to a nearby available driver; the driver accepts or declines
 - Live location tracking of the driver during the trip
 - Trip lifecycle: requested → matched → driver arriving → in progress → completed → paid
 
 **Non-functional**
+
 - 20M rides/day; 5M active drivers, ~1M online at peak
 - Drivers send location every **4 seconds** → ~250K location updates/s
 - Matching latency: a few seconds
@@ -67,6 +69,7 @@ Claim:  UPDATE drivers SET state='OFFERED', ride_id=:r, offer_expires=now()+15s
 Only one dispatcher succeeds; the other picks the next candidate.
 
 **Option 2: Single writer per geo region**
+
 - Each dispatch shard owns a region (a set of cells). All matching decisions for drivers in that region are made **sequentially** by its owner, so there's no race by construction. Uber's dispatch (DISCO) partitioned supply and demand geographically with consistent hashing (Ringpop).
 - Batch matching: collect requests over a ~1–2s window and solve the assignment globally for the region (better total ETAs than greedy nearest-driver).
 
@@ -82,6 +85,7 @@ Only one dispatcher succeeds; the other picks the next candidate.
 REQUESTED → MATCHING → DRIVER_ASSIGNED → DRIVER_ARRIVED → IN_PROGRESS → COMPLETED → PAID
      └→ CANCELED (by rider/driver/no drivers)
 ```
+
 - Stored in a strongly consistent DB (Schemaless/MySQL at Uber, later Docstore; Postgres, Spanner).
 - **Conditional transitions** (`WHERE status = expected`) prevent races such as the rider canceling at the same moment the driver accepts. Exactly one wins; the other gets "trip already canceled/accepted."
 - Events emitted via the outbox → notifications, billing, analytics.

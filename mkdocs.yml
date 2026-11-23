@@ -1,0 +1,164 @@
+site_name: System Design Guide
+site_description: A senior-level system design guide focused on concurrency and distributed systems, with 24 case studies.
+site_url: https://pandeer-kumar.github.io/system-design/
+repo_url: https://github.com/pandeer-kumar/system-design
+repo_name: pandeer-kumar/system-design
+edit_uri: edit/main/
+
+# The guide's markdown lives at the repo root so it reads well on GitHub.
+# scripts/build-site.sh copies it into build/docs before MkDocs runs.
+docs_dir: build/docs
+site_dir: build/site
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+validation:
+  links:
+    absolute_links: warn
+    unrecognized_links: warn
+    anchors: warn
+
+nav:
+  - Home: README.md
+  - Interview Framework:
+    - 00-interview-framework/README.md
+    - 00-interview-framework/01-framework.md
+    - 00-interview-framework/02-estimation.md
+    - 00-interview-framework/03-senior-signals.md
+  - Fundamentals:
+    - 01-fundamentals/README.md
+    - 01-fundamentals/01-core-qualities.md
+    - 01-fundamentals/02-networking.md
+    - 01-fundamentals/03-cap-pacelc.md
+    - 01-fundamentals/04-api-design.md
+  - Concurrency:
+    - 02-concurrency/README.md
+    - 02-concurrency/01-fundamentals.md
+    - 02-concurrency/02-locks-and-sync.md
+    - 02-concurrency/03-database-concurrency.md
+    - 02-concurrency/04-optimistic-vs-pessimistic.md
+    - 02-concurrency/05-distributed-locks.md
+    - 02-concurrency/06-idempotency.md
+    - 02-concurrency/07-concurrency-models.md
+    - 02-concurrency/08-classic-problems.md
+  - Distributed Systems:
+    - 03-distributed-systems/README.md
+    - 03-distributed-systems/01-failure-modes.md
+    - 03-distributed-systems/02-time-and-ordering.md
+    - 03-distributed-systems/03-replication.md
+    - 03-distributed-systems/04-partitioning.md
+    - 03-distributed-systems/05-consistency-models.md
+    - 03-distributed-systems/06-consensus.md
+    - 03-distributed-systems/07-distributed-transactions.md
+    - 03-distributed-systems/08-crdts-conflict-resolution.md
+    - 03-distributed-systems/09-membership-gossip.md
+  - Building Blocks:
+    - 04-building-blocks/README.md
+    - 04-building-blocks/01-load-balancing.md
+    - 04-building-blocks/02-caching.md
+    - 04-building-blocks/03-databases.md
+    - 04-building-blocks/04-messaging.md
+    - 04-building-blocks/05-storage-cdn.md
+    - 04-building-blocks/06-search.md
+    - 04-building-blocks/07-id-generation.md
+    - 04-building-blocks/08-rate-limiting.md
+    - 04-building-blocks/09-observability.md
+  - Patterns:
+    - 05-patterns/README.md
+    - 05-patterns/01-resilience.md
+    - 05-patterns/02-event-driven.md
+    - 05-patterns/03-microservices.md
+    - 05-patterns/04-multi-region.md
+    - 05-patterns/05-data-processing.md
+    - 05-patterns/06-security.md
+  - Case Studies:
+    - 06-case-studies/README.md
+    - 06-case-studies/01-url-shortener.md
+    - 06-case-studies/02-rate-limiter.md
+    - 06-case-studies/03-key-value-store.md
+    - 06-case-studies/04-news-feed.md
+    - 06-case-studies/05-chat-system.md
+    - 06-case-studies/06-ticket-booking.md
+    - 06-case-studies/07-payment-system.md
+    - 06-case-studies/08-ride-sharing.md
+    - 06-case-studies/09-video-streaming.md
+    - 06-case-studies/10-message-queue.md
+    - 06-case-studies/11-job-scheduler.md
+    - 06-case-studies/12-collaborative-editor.md
+    - 06-case-studies/13-web-crawler.md
+    - 06-case-studies/14-notification-system.md
+    - 06-case-studies/15-typeahead.md
+    - 06-case-studies/16-file-sync.md
+    - 06-case-studies/17-stock-exchange.md
+    - 06-case-studies/18-metrics-monitoring.md
+    - 06-case-studies/19-distributed-counter.md
+    - 06-case-studies/20-flash-sale.md
+    - 06-case-studies/21-proximity-service.md
+    - 06-case-studies/22-distributed-cache.md
+    - 06-case-studies/23-search-system.md
+    - 06-case-studies/24-leaderboard.md
+  - Real World:
+    - 07-real-world/README.md
+    - 07-real-world/01-papers.md
+    - 07-real-world/02-outages-postmortems.md
+    - 07-real-world/03-company-architectures.md
+  - Cheat Sheets:
+    - 08-cheatsheets/README.md
+    - 08-cheatsheets/01-numbers.md
+    - 08-cheatsheets/02-tradeoffs.md
+    - 08-cheatsheets/03-technology-picker.md
+    - 08-cheatsheets/04-interview-checklist.md
+    - 08-cheatsheets/05-qa-drill.md

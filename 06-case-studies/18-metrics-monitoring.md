@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Ingest metrics (counters, gauges, histograms) with tags/labels from millions of hosts and containers
 - Query: time ranges, aggregations (sum, avg, p99), group-by tags, rates
 - Dashboards; alerting rules evaluated continuously; notifications
 - Retention: high resolution (10s) for 15 days, downsampled (1m/1h) for 1+ years
 
 **Non-functional**
+
 - Ingest: **10M+ data points/s**
 - Query latency: < 1s for dashboards over recent data
 - **Alerting must be highly available**, more available than the systems it monitors
@@ -41,8 +43,8 @@ Alerting: Rule evaluators (replicated, sharded by rule) → Alertmanager (dedup,
 ## 4. Deep dive: time-series storage and compression
 
 - **Gorilla (Facebook, 2015) compression:**
-  - Timestamps: **delta-of-delta** encoding (regular intervals compress to ~1 bit)
-  - Values: **XOR** with the previous value (similar floats share bits) → ~1.37 bytes per point vs 16 raw
+    - Timestamps: **delta-of-delta** encoding (regular intervals compress to ~1 bit)
+    - Values: **XOR** with the previous value (similar floats share bits) → ~1.37 bytes per point vs 16 raw
 - Data organized in **blocks per time window** (e.g., 2h), immutable once flushed (like LSM SSTables); compacted into larger blocks; downsampled for long retention.
 - **Inverted index** from tag → series IDs for queries like `service="checkout" AND status=~"5.."`.
 - Columnar formats for long-term analytics.

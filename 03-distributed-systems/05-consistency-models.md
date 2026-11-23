@@ -19,6 +19,7 @@ Strict serializability (= linearizable + serializable)
 ```
 
 Two different axes:
+
 - **Linearizability:** single-object, real-time recency guarantee (a distributed-systems concept).
 - **Serializability:** multi-object transaction isolation (a database concept). Transactions appear to run in *some* serial order, which need not match real time.
 - **Strict serializability:** both. Transactions appear in a serial order consistent with real time. (Spanner calls it "external consistency.")
@@ -34,6 +35,7 @@ Alice: write(x=1) ——completes——
 ```
 
 **Where you need it:**
+
 - **Leader election / locks:** everyone must agree who holds the lock
 - **Uniqueness constraints:** usernames, seat booking
 - **Cross-channel timing dependencies:** upload an image to storage, then send a message to a resizer via a queue. If storage isn't linearizable, the resizer might read the old image.
@@ -75,6 +77,7 @@ Implementation: sticky routing, session tokens with a version/LSN, reading from 
 ## Eventual consistency
 
 **If no new writes occur, all replicas eventually converge to the same value.**
+
 - No bound on "eventually" and no guarantee on what you read meanwhile.
 - **Strong eventual consistency (SEC):** replicas that received the same set of updates are in the same state, with no conflicts left to resolve (CRDTs give this).
 

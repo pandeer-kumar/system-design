@@ -3,6 +3,7 @@
 Full distributed design in [06-case-studies/02-rate-limiter.md](../06-case-studies/02-rate-limiter.md). This page covers the algorithms.
 
 ## Why rate limit
+
 - Protect services from overload (self-inflicted or abusive)
 - Fairness between tenants
 - Cost control (paid third-party APIs)
@@ -13,11 +14,13 @@ Full distributed design in [06-case-studies/02-rate-limiter.md](../06-case-studi
 
 ### 1. Fixed window counter
 `count[user][floor(now/60s)]++`; reject if > limit.
+
 - ✅ Simple, O(1) memory, one Redis `INCR` + `EXPIRE`.
 - ❌ **Boundary burst:** 100 at 0:59 + 100 at 1:00 = 200 within 2 seconds.
 
 ### 2. Sliding window log
 Store the timestamp of every request (Redis sorted set). Count entries in `[now − window, now]`.
+
 - ✅ Exact.
 - ❌ Memory O(requests): 10K/min limit means storing 10K timestamps per user.
 
@@ -34,20 +37,23 @@ Weighted combination of the current and previous fixed windows:
 ```
 estimate = prev_count × (1 − elapsed_fraction_of_current_window) + curr_count
 ```
+
 - ✅ O(1) memory, smooths the boundary burst. Cloudflare reported ~0.003% error in practice.
 - **Common choice in production.**
 
 ### 4. Token bucket
+
 - A bucket of capacity **B** refills at rate **r** tokens/sec. Each request consumes 1 token (or a cost). Empty means reject.
 - ✅ **Allows bursts up to B** while enforcing an average rate r. Intuitive for APIs.
 - Store only `(tokens, last_refill_ts)` and **refill lazily** on each request:
-  ```
-  tokens = min(B, tokens + (now − last) × r)
-  if tokens >= cost: tokens -= cost; allow
-  ```
+    ```
+    tokens = min(B, tokens + (now − last) × r)
+    if tokens >= cost: tokens -= cost; allow
+    ```
 - Used by AWS API Gateway, Stripe, and most API rate limiters.
 
 ### 5. Leaky bucket
+
 - Requests enter a queue (bucket) and are processed at a fixed rate. Overflow is rejected.
 - ✅ **Smooths output to a constant rate**. Good for protecting a downstream that needs steady load.
 - ❌ Bursts are queued (latency), not served.

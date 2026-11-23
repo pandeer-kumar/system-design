@@ -31,6 +31,7 @@ T1: UPDATE doctors SET on_call = false WHERE name = 'Alice';
 T2: UPDATE doctors SET on_call = false WHERE name = 'Bob';
 -- both commit → 0 doctors on call
 ```
+
 - **Snapshot isolation does NOT prevent this.** The writes are to different rows, so there's no write-write conflict.
 - Fixes: `SERIALIZABLE`, `SELECT ... FOR UPDATE` on the rows read, **materializing the conflict** (a row representing the constraint that both must update), or a DB constraint.
 
@@ -49,18 +50,21 @@ Other write-skew examples: double-booking a meeting room (two inserts into an em
 | **Serializable** | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 **Gotchas:**
+
 - Names lie. Postgres "Repeatable Read" is actually snapshot isolation. Oracle "Serializable" is actually snapshot isolation. MySQL "Repeatable Read" has subtle behaviour: plain `SELECT` reads the snapshot, but `UPDATE` sees the latest committed version.
 - Read Committed, the most common default, **permits lost updates** for read-modify-write in application code.
 
 ## How databases implement isolation
 
 ### 1. Two-Phase Locking (2PL)
+
 - Growing phase: acquire locks. Shrinking phase: release (strict 2PL releases at commit).
 - Readers block writers and writers block readers.
 - Gives serializability (with predicate or range locks for phantoms).
 - Cons: low concurrency, deadlocks common.
 
 ### 2. MVCC (Multi-Version Concurrency Control)
+
 - Every write creates a **new version** tagged with a transaction ID. Readers see a **snapshot** as of their start time (or statement start, for Read Committed).
 - **Readers never block writers, and writers never block readers.**
 - Write-write conflicts: under SI, "first committer wins" (the second one aborts with a serialization error) or row locks.
@@ -75,31 +79,33 @@ Txn 103's snapshot sees v1 (500). Txn 110 sees v2 (300).
 ```
 
 ### 3. Serializable Snapshot Isolation (SSI)
+
 - Postgres `SERIALIZABLE` and CockroachDB. MVCC plus tracking of read-write dependencies; aborts a transaction if a dangerous cycle (rw-antidependency structure) is detected.
 - Optimistic: no blocking, but **aborts under contention, and the app must retry**.
 
 ### 4. Optimistic Concurrency Control (OCC)
+
 - Read without locks, validate at commit that nothing you read changed, abort if it did. Good for low contention. (FoundationDB, many in-memory DBs.)
 
 ## Preventing lost updates: the 5 tools
 
 1. **Atomic operations** (best when they fit):
-   ```sql
-   UPDATE products SET stock = stock - 1 WHERE id = 42 AND stock > 0;
-   -- check affected rows: 0 means sold out
-   ```
+    ```sql
+    UPDATE products SET stock = stock - 1 WHERE id = 42 AND stock > 0;
+    -- check affected rows: 0 means sold out
+    ```
 2. **Explicit locking:**
-   ```sql
-   SELECT stock FROM products WHERE id = 42 FOR UPDATE;
-   -- app logic
-   UPDATE products SET stock = :new WHERE id = 42;
-   ```
+    ```sql
+    SELECT stock FROM products WHERE id = 42 FOR UPDATE;
+    -- app logic
+    UPDATE products SET stock = :new WHERE id = 42;
+    ```
 3. **Optimistic version check (compare-and-set):**
-   ```sql
-   UPDATE products SET stock = :new, version = version + 1
-   WHERE id = 42 AND version = :old_version;
-   -- 0 rows affected → conflict → re-read and retry
-   ```
+    ```sql
+    UPDATE products SET stock = :new, version = version + 1
+    WHERE id = 42 AND version = :old_version;
+    -- 0 rows affected → conflict → re-read and retry
+    ```
 4. **Higher isolation level** (SI detects lost updates in Postgres, aborting with a serialization failure).
 5. **Single writer** (serialize all updates to a key through one queue partition or actor).
 
@@ -108,11 +114,11 @@ Txn 103's snapshot sees v1 (500). Txn 110 sees v2 (300).
 - **Row locks:** shared (S, `FOR SHARE`) vs exclusive (X, `FOR UPDATE`).
 - **`SELECT ... FOR UPDATE NOWAIT`:** fail immediately if locked.
 - **`SELECT ... FOR UPDATE SKIP LOCKED`:** skip locked rows. **The best primitive for a DB-backed job queue.** Each worker grabs different rows:
-  ```sql
-  SELECT id FROM jobs WHERE status='pending'
-  ORDER BY created_at LIMIT 10
-  FOR UPDATE SKIP LOCKED;
-  ```
+    ```sql
+    SELECT id FROM jobs WHERE status='pending'
+    ORDER BY created_at LIMIT 10
+    FOR UPDATE SKIP LOCKED;
+    ```
 - **Gap and next-key locks (InnoDB):** lock ranges to prevent phantoms. Can cause surprising deadlocks.
 - **Advisory locks (Postgres `pg_advisory_lock`):** application-defined locks keyed by an integer, for example a simple leader election or a "one migration at a time" guard.
 - **Lock escalation (SQL Server):** many row locks become a table lock. Watch out with bulk updates.
@@ -148,6 +154,7 @@ else:
 ## Replication lag anomalies (read replicas)
 
 These are concurrency problems too:
+
 - **Read-your-writes violation:** a user updates their profile, refreshes, and the request hits a lagging replica, so the old profile shows. Fix: read from the primary for N seconds after a write, or track the user's last-write LSN and wait for the replica to catch up.
 - **Monotonic reads violation:** consecutive reads hit different replicas and time goes backward. Fix: stick a user to one replica.
 - **Consistent prefix violation:** you see an answer before the question (partitioned data replicated out of order).

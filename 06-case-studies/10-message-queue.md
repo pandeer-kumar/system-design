@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - Producers publish messages to topics
 - Consumers subscribe; multiple independent consumer groups
 - Ordering within a partition (by key)
@@ -12,6 +13,7 @@
 - Optional: exactly-once semantics, log compaction
 
 **Non-functional**
+
 - Throughput: millions of msgs/s, GB/s per cluster
 - Durability: no loss of acknowledged messages with up to f broker failures
 - Low latency: ~ms end-to-end
@@ -25,6 +27,7 @@ Topic "orders" (3 partitions, RF=3)
   P1: [m0 m1 m2 ...]         leader B2, followers B3,B1
   P2: [m0 m1 ...]            leader B3, followers B1,B2
 ```
+
 - A message has an **offset** (its position in the partition).
 - Producers append to partition leaders; consumers read sequentially by offset.
 - **Consumption doesn't delete.** Retention is independent of consumption.
@@ -54,6 +57,7 @@ Topic "orders" (3 partitions, RF=3)
 **Why ISR instead of a majority quorum?** With ISR, you tolerate N−1 failures with N replicas (vs. ⌊(N−1)/2⌋ with majority quorums), because the ISR membership itself is maintained by a consistent controller. The trade-off: ISR membership changes need a consistent metadata store.
 
 **Leader failover:**
+
 - The controller picks a new leader **from the ISR** (so no committed data is lost).
 - **Leader epoch:** each new leadership increments an epoch. Followers truncate their logs to the leader's epoch boundaries on recovery (fixes divergence that the high watermark alone can't, a bug class found in early Kafka).
 - `unclean.leader.election=false`: never elect an out-of-ISR replica (that would lose data).
@@ -71,7 +75,7 @@ Topic "orders" (3 partitions, RF=3)
 - Parallelism ≤ number of partitions.
 - **Offsets** are committed to an internal compacted topic (`__consumer_offsets`), keyed by (group, topic, partition).
 - **Group coordinator** (a broker) manages membership via heartbeats; on join/leave/timeout, a **rebalance** reassigns partitions.
-  - Eager rebalance: stop-the-world. Cooperative incremental: only moved partitions pause. Static membership: restarts within a timeout don't trigger a rebalance.
+    - Eager rebalance: stop-the-world. Cooperative incremental: only moved partitions pause. Static membership: restarts within a timeout don't trigger a rebalance.
 - **Zombie consumers:** a consumer paused past the session timeout loses its partitions; when it resumes, its commits are rejected (generation ID acts as a fencing token).
 
 ## 8. Delivery semantics

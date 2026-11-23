@@ -10,6 +10,7 @@
 **Rule:** use monotonic clocks for timeouts and durations, never wall clocks.
 
 ### Clock skew
+
 - NTP over the internet: tens to hundreds of ms of skew. Within a DC: ~1ms, but **no guarantee**.
 - Clock drift: quartz drifts ~10–200 ppm (6–17 seconds/day at worst without sync).
 - VMs may pause, and leap seconds have caused major outages (2012 Linux kernel livelock).
@@ -27,6 +28,7 @@ Cassandra uses client or server timestamps for LWW, and this is a known source o
 
 ### Lamport timestamps (1978)
 Each node keeps a counter `C`.
+
 - On a local event: `C = C + 1`
 - On send: attach `C`
 - On receive with timestamp `T`: `C = max(C, T) + 1`
@@ -38,11 +40,13 @@ A total order: break ties with node ID: `(counter, node_id)`. Useful for total-o
 
 ### Vector clocks
 Each node keeps a vector `V[n]` of counters, one per node.
+
 - Local event: `V[self] += 1`
 - Send: attach `V`
 - Receive `W`: `V[i] = max(V[i], W[i])` for all i; then `V[self] += 1`
 
 **Compare:**
+
 - `V ≤ W` (all entries ≤): V happened-before W
 - Neither ≤ the other: **concurrent**, so this is a conflict
 
@@ -55,10 +59,12 @@ A: [1,0,0]   B: [2,1,0]   → A happened-before B
 **Cons:** size grows with the number of nodes/clients. Mitigations: version vectors per replica (not per client), pruning (lossy), dotted version vectors.
 
 ### Version vectors vs vector clocks
+
 - **Vector clocks** track causality between events across processes.
 - **Version vectors** track causality between versions of a data item across replicas. Practically similar, conceptually different.
 
 ### Hybrid Logical Clocks (HLC)
+
 - Combine physical time and a logical counter: `(physical_ms, logical)`.
 - Stays close to wall time (useful for humans and TTLs) while preserving the happened-before property like Lamport.
 - **Used by CockroachDB, YugabyteDB, MongoDB** (cluster time).

@@ -5,6 +5,7 @@
 Getting a group of nodes to **agree on a value** (or a sequence of values, i.e., a log) despite failures.
 
 **Properties:**
+
 - **Agreement:** no two nodes decide differently
 - **Validity:** the decided value was proposed by someone
 - **Integrity:** decide at most once
@@ -27,6 +28,7 @@ Getting a group of nodes to **agree on a value** (or a sequence of values, i.e.,
 Designed for understandability. Equivalent in power to Multi-Paxos.
 
 ### Roles
+
 - **Leader:** handles all client writes and replicates the log
 - **Follower:** passive; responds to leader and candidates
 - **Candidate:** trying to become leader
@@ -35,6 +37,7 @@ Designed for understandability. Equivalent in power to Multi-Paxos.
 Time is divided into **terms** (monotonically increasing integers). Each term has at most one leader. **Terms act as logical clocks and fencing tokens.** Any message with a stale term is rejected; a node seeing a higher term steps down to follower.
 
 ### Leader election
+
 1. A follower hears no heartbeat within the **election timeout** (randomized, e.g., 150–300ms, to avoid split votes).
 2. It becomes a candidate, increments its term, votes for itself, and sends `RequestVote` to all.
 3. A node grants its vote if (a) it hasn't voted in this term and (b) **the candidate's log is at least as up-to-date** as its own (compare last log term, then last log index).
@@ -44,6 +47,7 @@ Time is divided into **terms** (monotonically increasing integers). Each term ha
 **Election restriction (rule b) is the key safety property:** only a node with every committed entry can become leader.
 
 ### Log replication
+
 1. Client sends a command to the leader.
 2. The leader appends to its log (index, term, command).
 3. The leader sends `AppendEntries(prevLogIndex, prevLogTerm, entries[], leaderCommit)` to followers.
@@ -55,6 +59,7 @@ Time is divided into **terms** (monotonically increasing integers). Each term ha
 
 ### Linearizable reads in Raft
 Reading from the leader isn't automatically safe, because a deposed leader might not know it was deposed. Options:
+
 - **Log the read** through Raft (slow, but simple)
 - **ReadIndex:** the leader records the commit index, confirms leadership with a heartbeat round to a majority, waits until applied ≥ that index, then serves the read
 - **Leader lease:** the leader assumes leadership for a lease period after heartbeat acks (relies on bounded clock drift). Faster but timing-dependent.
@@ -67,6 +72,7 @@ Changing the cluster configuration safely: **joint consensus** (old + new majori
 Snapshots of state machine state; truncate the log before the snapshot. Lagging followers receive `InstallSnapshot`.
 
 ### Raft failure scenarios to know
+
 | Scenario | What happens |
 |---|---|
 | Leader crashes | Followers time out, a new election; uncommitted entries on the old leader may be lost (the client never got an ack, so it's fine) |
@@ -80,10 +86,12 @@ Snapshots of state machine state; truncate the log before the snapshot. Lagging 
 Roles: proposers, acceptors, learners.
 
 **Phase 1 (Prepare/Promise):**
+
 - Proposer picks proposal number `n` and sends `Prepare(n)` to acceptors.
 - Acceptor: if `n` > any prepare it has seen, it promises not to accept proposals < n and returns any value it already accepted (with its number).
 
 **Phase 2 (Accept/Accepted):**
+
 - If a majority promises, the proposer sends `Accept(n, v)`, where `v` = the value of the highest-numbered accepted proposal from the promises, or its own value if none.
 - Acceptors accept unless they've promised a higher n.
 - Once a majority accepts, the value is **chosen**.
@@ -94,6 +102,7 @@ Roles: proposers, acceptors, learners.
 Run Paxos for each log slot. **Optimization:** elect a stable leader that skips Phase 1 for subsequent slots, so steady state = one round trip. That's essentially what Raft formalizes.
 
 ### Variants
+
 - **Fast Paxos:** clients send directly to acceptors; 1 RTT when there are no conflicts, larger quorums needed
 - **EPaxos (Egalitarian):** leaderless; commutative commands commit in 1 RTT from any replica. Good for geo-distribution.
 - **Flexible Paxos:** Phase 1 and Phase 2 quorums only need to intersect each other, not be majorities (e.g., small Phase 2 quorums for fast commits, large Phase 1 for rare elections)

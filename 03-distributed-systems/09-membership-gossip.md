@@ -8,15 +8,18 @@ In a cluster of hundreds or thousands of nodes, each node needs to know who is a
 
 ### Heartbeat with fixed timeout
 Nodes send heartbeats every T; declare dead after k×T of silence.
+
 - Simple, but a fixed threshold is brittle: network jitter causes false positives, and long timeouts mean slow detection.
 
 ### Phi (φ) Accrual Failure Detector (Hayashibara et al.)
+
 - Instead of a binary alive/dead, output a **suspicion level φ** from the statistical distribution of heartbeat inter-arrival times.
 - `φ = -log10(P(heartbeat arrives later than now))`
 - Applications pick a threshold (Cassandra default φ = 8, which means ~1 in 10^8 chance of a false positive under the model).
 - **Adapts** to network conditions automatically. Used by Cassandra and Akka.
 
 ### Properties
+
 - **Completeness:** every crashed node is eventually suspected
 - **Accuracy:** no live node is suspected (impossible to guarantee perfectly in async systems)
 - Trade-off: faster detection means more false positives
@@ -24,12 +27,14 @@ Nodes send heartbeats every T; declare dead after k×T of silence.
 ## Gossip protocols (epidemic dissemination)
 
 Each node periodically (e.g., every 1s) picks **random peer(s)** and exchanges state.
+
 - Information spreads like an epidemic: reaches all N nodes in **O(log N)** rounds.
 - **Robust:** no single point of failure; tolerates message loss and node failures.
 - **Scalable:** constant load per node per round.
 - **Eventually consistent:** convergence isn't instant.
 
 ### Gossip styles
+
 - **Push:** send my updates to a random peer
 - **Pull:** ask a random peer for its updates
 - **Push-pull:** both (fastest convergence)
@@ -37,12 +42,14 @@ Each node periodically (e.g., every 1s) picks **random peer(s)** and exchanges s
 - **Rumor mongering:** spread new updates aggressively, then stop once "enough" peers know
 
 ### What gets gossiped
+
 - Membership (who is in the cluster, with heartbeat counters/versions)
 - Failure suspicions
 - Cluster metadata (token ownership in Cassandra, schema versions)
 - Load info for routing
 
 ### Used by
+
 - **Cassandra** (membership, token ring, schema), **DynamoDB** internals, **Consul/Serf** (SWIM), **Redis Cluster** (cluster bus), **Riak**, **Bitcoin** (transaction propagation), **ScyllaDB**, **Uber Ringpop**
 
 ## SWIM (Scalable Weakly-consistent Infection-style Membership)
@@ -61,6 +68,7 @@ Used by HashiCorp Serf/Consul (memberlist) and Uber's Ringpop.
 ## Centralized membership (alternative)
 
 Use a consensus service (ZooKeeper/etcd) as the **source of truth** for membership:
+
 - Nodes register ephemeral nodes / leases; when the session dies, they're removed.
 - Strongly consistent view, simpler reasoning.
 - Scales less well (the coordinator handles all heartbeats; sessions can storm on restart).

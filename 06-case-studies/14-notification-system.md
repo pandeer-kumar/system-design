@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - Send notifications via push (APNs/FCM), SMS (Twilio), email (SES/SendGrid), and in-app
 - Triggered by events (order shipped) or campaigns (marketing blast to 50M users)
 - User preferences (opt-outs per channel/category), quiet hours, time zones
@@ -12,6 +13,7 @@
 - Delivery tracking (sent, delivered, opened)
 
 **Non-functional**
+
 - Scale: 1B+ notifications/day; campaigns of 100M in a short window
 - Transactional notifications (OTP, security alerts) delivered within seconds; marketing can be delayed
 - **No duplicates** (two identical push notifications are annoying; two OTPs are confusing)
@@ -67,6 +69,7 @@ Sources of duplicates: producer retries, Kafka redelivery, worker crashes after 
 preferences(user_id, channel, category, enabled, quiet_hours, timezone)
 devices(user_id, device_id, platform, push_token, app_version, last_seen)
 ```
+
 - Heavily cached (read on every notification).
 - Invalid token feedback from APNs/FCM → delete the token (otherwise you waste sends, and providers penalize senders).
 

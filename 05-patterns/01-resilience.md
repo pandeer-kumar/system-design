@@ -14,6 +14,7 @@ How to keep a distributed system up when its parts fail. Interviewers expect you
 ```
 delay = random(0, min(cap, base × 2^attempt))     # "full jitter"
 ```
+
 - Retry only **transient** errors (timeouts, 503, 429, connection reset), and only **idempotent** operations or those with an idempotency key.
 - **Retry budget:** retries ≤ 10–20% of total requests (Finagle/Envoy). Without a budget, retries multiply load during outages, which is the classic metastable failure.
 - **Retry at one layer.** Nested retries multiply (3 retries × 4 layers = 81 attempts).
@@ -27,6 +28,7 @@ CLOSED ──(failures > threshold)──> OPEN ──(after cooldown)──> HA
    └───────────(trial requests succeed)───────────────────────────┘
                  (trial fails) → back to OPEN
 ```
+
 - **Closed:** requests flow; track the error rate over a sliding window.
 - **Open:** fail fast without calling the dependency (return an error, cached data, or a fallback).
 - **Half-open:** allow a few trial requests; close if they succeed.
@@ -36,6 +38,7 @@ CLOSED ──(failures > threshold)──> OPEN ──(after cooldown)──> HA
 ## 4. Bulkheads (isolation)
 
 Named after ship compartments: a leak in one doesn't sink the ship.
+
 - **Separate thread pools / connection pools / semaphores per dependency.** A slow recommendations service can't consume the threads that serve checkout.
 - **Separate clusters for critical vs non-critical traffic.**
 - **Cell-based architecture:** partition the whole stack (app + DB) into independent cells, each serving a subset of customers. A failure or bad deploy affects one cell (AWS uses this extensively; Slack and DoorDash moved toward cells).
@@ -44,6 +47,7 @@ Named after ship compartments: a leak in one doesn't sink the ship.
 ## 5. Backpressure
 
 When consumers can't keep up, **signal producers to slow down** rather than buffering without limit.
+
 - Bounded queues: when full, block, reject, or drop.
 - TCP flow control, gRPC/HTTP2 flow control windows, Reactive Streams `request(n)`.
 - Kafka consumers pull at their own pace (natural backpressure; lag grows instead).
@@ -52,6 +56,7 @@ When consumers can't keep up, **signal producers to slow down** rather than buff
 ## 6. Load shedding
 
 Under overload, **reject excess requests early and cheaply** to keep serving the rest within SLO.
+
 - Shed at the edge, before doing expensive work.
 - **Prioritize:** critical (checkout) > normal (browse) > sheddable (prefetch, analytics). Google tags requests with criticality.
 - **LIFO under overload:** the oldest requests in the queue have probably already timed out at the client, so serve the newest first (Meta's adaptive LIFO + CoDel for queues).

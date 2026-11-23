@@ -58,6 +58,7 @@ Store **blobs** in object storage and **metadata** (owner, size, checksum, locat
 **Edge servers (PoPs)** worldwide cache content close to users.
 
 ### Push vs pull
+
 | | Pull (origin pull) | Push |
 |---|---|---|
 | How | Edge fetches from origin on first miss | You upload content to the CDN ahead of time |
@@ -66,6 +67,7 @@ Store **blobs** in object storage and **metadata** (owner, size, checksum, locat
 | Use | Most websites, APIs | Large, predictable content (video releases, game patches) |
 
 ### Key concepts
+
 - **Cache-Control headers:** `max-age`, `s-maxage` (shared caches), `stale-while-revalidate`, `stale-if-error`, `no-store`, `private`.
 - **Cache key:** URL + selected headers/cookies. Too many variations kill the hit rate.
 - **Invalidation/purge:** slow-ish (seconds to minutes) and sometimes costly. **Prefer versioned URLs** (`/app.3f2a1b.js`, `/img/123_v2.jpg`).
@@ -75,6 +77,7 @@ Store **blobs** in object storage and **metadata** (owner, size, checksum, locat
 - **Dynamic content acceleration:** even uncacheable API calls benefit (TLS termination near the user, persistent optimized connections to the origin).
 
 ### Video-specific CDN behaviour
+
 - Segment-based streaming (HLS/DASH): each 2–10s chunk is a cacheable object.
 - **Netflix Open Connect:** Netflix places its own cache appliances **inside ISPs** and **pre-positions** content during off-peak hours based on predicted popularity. ~95%+ of traffic is served from these.
 - Long-tail content has low CDN hit rates, so it's served from regional caches or the origin.

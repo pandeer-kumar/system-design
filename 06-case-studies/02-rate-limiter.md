@@ -5,11 +5,13 @@
 ## 1. Requirements
 
 **Functional**
+
 - Limit requests per key (user, API key, IP, tenant) per time window, with configurable rules: `free tier: 100 req/min`, `POST /login: 5/min per IP`
 - Return 429 with `Retry-After` when exceeded
 - Multiple rules per request (per-user AND per-endpoint AND global)
 
 **Non-functional**
+
 - Low latency overhead: **< 1–2ms p99**
 - Highly available. The limiter must not become the outage.
 - Accurate enough (small over-admission OK for most rules; strict for security rules)
@@ -70,6 +72,7 @@ redis.call('HSET', KEYS[1], 'tokens', tokens, 'ts', now)
 redis.call('PEXPIRE', KEYS[1], math.ceil(capacity / rate * 1000) * 2)
 return {allowed, tokens}
 ```
+
 - **Use Redis server time** (`redis.call('TIME')`) or a consistent clock to avoid gateway clock skew affecting refill.
 - **Multiple rules per request:** keys for different rules may live on different shards, so a single script can't touch them all. Either use **hash tags** (`{user42}:minute`, `{user42}:hour`) to co-locate a user's keys, or check rules independently (accept that one rule consumes a token even if another rejects; usually fine).
 
@@ -96,9 +99,9 @@ A Redis round trip (~0.3–1ms) per request is acceptable for most APIs. At extr
 
 - **Exact global limits** need cross-region coordination on every request (+100ms). Unacceptable.
 - **Options:**
-  1. **Per-region limits:** split the limit across regions (static, or by traffic share). Simple; slightly wrong when traffic shifts.
-  2. **Local enforcement + async global sync:** regions gossip their counts every ~1s and each enforces `local + others' last known`. Over-admission bounded by sync lag.
-  3. **Home-region routing:** a tenant's limit lives in its home region; remote regions call it asynchronously or with leased tokens.
+    1. **Per-region limits:** split the limit across regions (static, or by traffic share). Simple; slightly wrong when traffic shifts.
+    2. **Local enforcement + async global sync:** regions gossip their counts every ~1s and each enforces `local + others' last known`. Over-admission bounded by sync lag.
+    3. **Home-region routing:** a tenant's limit lives in its home region; remote regions call it asynchronously or with leased tokens.
 - Most companies choose (1) or (2). State it clearly: "Global limits are approximate within ~1s of traffic, which is fine for API quotas."
 
 ## 9. Response and client behaviour

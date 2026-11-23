@@ -27,16 +27,19 @@
 ## Active-active patterns
 
 ### 1. Read local, write global (single write region)
+
 - All writes go to the primary region; replicas in other regions serve reads.
 - ✅ No write conflicts. ❌ Write latency for remote users; failover of the write region needed.
 - Variant: **a home region per user/tenant** ("data follows the user"). Each user's writes go to their home region; most users are near their home. **This is the most practical active-active design.**
 
 ### 2. Multi-leader writes everywhere
+
 - Every region writes locally and replicates asynchronously.
 - Needs conflict resolution (LWW, CRDTs, app merge). See [03-distributed-systems/08-crdts-conflict-resolution.md](../03-distributed-systems/08-crdts-conflict-resolution.md).
 - DynamoDB Global Tables (LWW), Cassandra multi-DC with `LOCAL_QUORUM`.
 
 ### 3. Globally consistent (consensus across regions)
+
 - Spanner, CockroachDB multi-region: writes need a cross-region quorum (+50–150ms).
 - Optimizations: place leaders near writers (CockroachDB `REGIONAL BY ROW`, leaseholder pinning), **follower reads / stale reads** for read-only queries.
 

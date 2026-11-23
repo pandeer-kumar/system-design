@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - Multiple users edit the same document concurrently, seeing each other's changes in real time
 - Cursors and presence of other editors
 - Version history, undo
@@ -12,6 +13,7 @@
 - Comments, permissions (view/comment/edit)
 
 **Non-functional**
+
 - Latency: local edits instant (optimistic); remote edits visible < 200ms
 - **Convergence:** all users end up with the same document
 - **Intent preservation:** concurrent edits don't clobber each other
@@ -28,19 +30,19 @@
 
 - Operations: `insert(pos, text)`, `delete(pos, len)`, plus formatting.
 - When two ops are concurrent, **transform** one against the other so it applies correctly:
-  ```
-  Doc: "abc"
-  A: insert(0, "X")   → "Xabc"
-  B: delete(2, 1)     → "ab"    (deletes 'c')
-  At A, B's op transforms to delete(3, 1) (shift because of A's insert) → "Xab"
-  At B, A's op stays insert(0,"X") → "Xab"   ✅ converged
-  ```
+    ```
+    Doc: "abc"
+    A: insert(0, "X")   → "Xabc"
+    B: delete(2, 1)     → "ab"    (deletes 'c')
+    At A, B's op transforms to delete(3, 1) (shift because of A's insert) → "Xab"
+    At B, A's op stays insert(0,"X") → "Xab"   ✅ converged
+    ```
 - **Central server ordering (Jupiter / Google Wave protocol):**
-  - The server is the single source of truth with a **revision number**.
-  - The client sends ops tagged with the revision they were based on.
-  - The server transforms incoming ops against all ops committed since that revision, assigns the next revision, persists, and broadcasts.
-  - Clients keep pending (unacked) ops and transform incoming server ops against them.
-  - A client has at most one in-flight op batch at a time, which simplifies transformation.
+    - The server is the single source of truth with a **revision number**.
+    - The client sends ops tagged with the revision they were based on.
+    - The server transforms incoming ops against all ops committed since that revision, assigns the next revision, persists, and broadcasts.
+    - Clients keep pending (unacked) ops and transform incoming server ops against them.
+    - A client has at most one in-flight op batch at a time, which simplifies transformation.
 - ✅ Compact ops, proven at scale. ❌ Requires a central server per document; transformation functions get complex for rich text.
 
 ## 4. CRDTs (Figma-inspired, Yjs, Automerge)
@@ -66,6 +68,7 @@ Presence (cursors) via the same session, ephemeral, not persisted
 ```
 
 ### The key concurrency design: a single owner per document
+
 - **Route all connections for a doc to the same session server** (consistent hashing on doc_id, or a lookup table/lease in a coordination service).
 - The owner processes ops **sequentially** (single writer). No locks, a deterministic order.
 - Ownership via a **lease with a fencing token**. If the owner dies, a new owner loads the latest snapshot + op log tail and clients reconnect. The op log write uses a conditional append (`revision = last + 1`), so a zombie owner can't append.

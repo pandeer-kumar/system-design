@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Submit jobs: one-off (run at time T) and recurring (cron expressions)
 - Execute jobs on a worker fleet; retries with backoff on failure
 - Job status, history, cancellation
 - Optional: dependencies (DAGs), priorities, rate limits per tenant
 
 **Non-functional**
+
 - Scale: 100M scheduled jobs; peak 100K jobs/s triggering (everyone schedules "at midnight")
 - Trigger accuracy: within ~1s of the scheduled time
 - **Each job runs at least once; ideally exactly once** (effectively, via idempotency)
@@ -36,6 +38,7 @@ API → Job Store (sharded DB)
 ```
 
 Two separate concerns:
+
 1. **Triggering:** finding jobs whose time has come and creating runs.
 2. **Execution:** reliably running each run on a worker.
 
@@ -44,25 +47,28 @@ Two separate concerns:
 **Naive:** one scheduler process scans `WHERE next_run_at <= now()`. That's a single point of failure. Running three for HA means three triggers per job.
 
 **Solution: partitioned scheduler with leadership per partition**
+
 - Split jobs into N partitions (e.g., by `hash(job_id) % 1024`).
 - Scheduler instances acquire **leases on partitions** (etcd/ZooKeeper, or a lease table with fencing tokens). Each partition has exactly one active owner.
 - The owner polls its partition: `SELECT ... WHERE partition=? AND next_run_at <= now() + lookahead ORDER BY next_run_at LIMIT 1000`.
 - For each due job, **atomically**:
-  ```sql
-  BEGIN;
-  INSERT INTO job_runs(job_id, scheduled_for, status='PENDING') ...;      -- UNIQUE(job_id, scheduled_for) dedupes
-  UPDATE jobs SET next_run_at = :next_cron_time, version=version+1
-     WHERE job_id=? AND version=:v;                                         -- optimistic guard
-  COMMIT;
-  ```
-  Then enqueue the run (via an outbox to the ready queue).
+    ```sql
+    BEGIN;
+    INSERT INTO job_runs(job_id, scheduled_for, status='PENDING') ...;      -- UNIQUE(job_id, scheduled_for) dedupes
+    UPDATE jobs SET next_run_at = :next_cron_time, version=version+1
+       WHERE job_id=? AND version=:v;                                         -- optimistic guard
+    COMMIT;
+    ```
+    Then enqueue the run (via an outbox to the ready queue).
 - **Even if two schedulers briefly overlap** (lease handover, GC pause), the unique constraint on `(job_id, scheduled_for)` prevents a duplicate run. The fencing token on the lease adds a second layer.
 
 **Precise timing at scale: time-bucketed or in-memory timer wheels**
+
 - Pre-load jobs due in the next minute into an in-memory **timing wheel / min-heap** per partition and fire them precisely.
 - Alternative: Redis sorted set `ZADD due:{partition} <timestamp> run_id`; poll `ZRANGEBYSCORE due 0 now LIMIT 1000` and atomically claim with a Lua script (`ZREM` succeeds for only one poller).
 
 **The midnight problem (thundering herd):** many jobs scheduled at 00:00:00.
+
 - Spread load: jitter where acceptable ("daily" means sometime in a window), or pre-enqueue with a "not before" time.
 - Scale workers ahead of known peaks; priority by tier.
 
@@ -79,6 +85,7 @@ or use the queue's semantics (SQS visibility timeout; Kafka consumer + external 
 - Worker dies → lease expires → another worker claims → **the job runs again**. So:
 
 **Exactly-once is not achievable for arbitrary side effects.** Provide:
+
 - **At-least-once execution** + a **fencing token** (attempt number / lease version) passed to the job, so downstream systems can reject stale attempts.
 - Ask job authors to make handlers **idempotent** (e.g., use `run_id` as an idempotency key for external calls).
 - Mark completion with a conditional update: `UPDATE job_runs SET status='SUCCEEDED' WHERE run_id=? AND worker_id=? AND attempt=?`. A zombie worker's late completion is rejected.

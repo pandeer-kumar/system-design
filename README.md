@@ -6,6 +6,22 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 
 ---
 
+## Read it as a website
+
+This guide is published with GitHub Pages at **https://pandeer-kumar.github.io/system-design/**. The site has sidebar navigation, full-text search, and dark mode. Every push to `main` rebuilds it automatically (see `.github/workflows/pages.yml`).
+
+To preview locally:
+
+```bash
+pip install -r requirements-docs.txt
+./scripts/build-site.sh          # builds into build/site
+./scripts/build-site.sh serve    # live preview at http://127.0.0.1:8000
+```
+
+When you add a new page, also add it to the `nav:` list in `mkdocs.yml`. Leave a blank line before every list and table, and indent nested list items by 4 spaces. GitHub doesn't need either, but the site's Markdown parser does.
+
+---
+
 ## How to use this guide
 
 | Phase | Time | What to do |
@@ -21,18 +37,21 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 
 ## Table of contents
 
-### [00 — Interview Framework](00-interview-framework/)
+### [00 — Interview Framework](00-interview-framework/README.md)
+
 - [01 — The 45-minute framework](00-interview-framework/01-framework.md)
 - [02 — Back-of-the-envelope estimation](00-interview-framework/02-estimation.md)
 - [03 — What senior/staff signals look like](00-interview-framework/03-senior-signals.md)
 
-### [01 — Fundamentals](01-fundamentals/)
+### [01 — Fundamentals](01-fundamentals/README.md)
+
 - [01 — Scalability, availability, reliability, latency](01-fundamentals/01-core-qualities.md)
 - [02 — Networking for system design (TCP, HTTP/2/3, gRPC, WebSockets, DNS)](01-fundamentals/02-networking.md)
 - [03 — CAP, PACELC, and what they actually mean](01-fundamentals/03-cap-pacelc.md)
 - [04 — API design (REST, gRPC, GraphQL, pagination, idempotency)](01-fundamentals/04-api-design.md)
 
-### [02 — Concurrency](02-concurrency/) ⭐
+### [02 — Concurrency](02-concurrency/README.md) ⭐
+
 - [01 — Concurrency fundamentals (threads, races, memory models)](02-concurrency/01-fundamentals.md)
 - [02 — Locks, synchronization primitives, deadlocks](02-concurrency/02-locks-and-sync.md)
 - [03 — Database concurrency: isolation levels, MVCC, anomalies](02-concurrency/03-database-concurrency.md)
@@ -42,7 +61,8 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 - [07 — Concurrency models: threads, event loops, actors, async](02-concurrency/07-concurrency-models.md)
 - [08 — Classic concurrency problems in system design](02-concurrency/08-classic-problems.md)
 
-### [03 — Distributed Systems](03-distributed-systems/) ⭐
+### [03 — Distributed Systems](03-distributed-systems/README.md) ⭐
+
 - [01 — Fallacies, failure modes, and the reality of networks](03-distributed-systems/01-failure-modes.md)
 - [02 — Time, clocks, and ordering (Lamport, vector clocks, HLC, TrueTime)](03-distributed-systems/02-time-and-ordering.md)
 - [03 — Replication (leader, multi-leader, leaderless, quorums)](03-distributed-systems/03-replication.md)
@@ -53,7 +73,8 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 - [08 — Conflict resolution and CRDTs](03-distributed-systems/08-crdts-conflict-resolution.md)
 - [09 — Membership, failure detection, gossip](03-distributed-systems/09-membership-gossip.md)
 
-### [04 — Building Blocks](04-building-blocks/)
+### [04 — Building Blocks](04-building-blocks/README.md)
+
 - [01 — Load balancing and proxies](04-building-blocks/01-load-balancing.md)
 - [02 — Caching (strategies, invalidation, stampedes)](04-building-blocks/02-caching.md)
 - [03 — Databases: choosing SQL vs NoSQL, storage engines (B-Tree vs LSM)](04-building-blocks/03-databases.md)
@@ -64,7 +85,8 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 - [08 — Rate limiting algorithms](04-building-blocks/08-rate-limiting.md)
 - [09 — Observability (metrics, logs, traces, SLOs)](04-building-blocks/09-observability.md)
 
-### [05 — Patterns](05-patterns/)
+### [05 — Patterns](05-patterns/README.md)
+
 - [01 — Resilience patterns (timeouts, retries, circuit breakers, bulkheads, backpressure)](05-patterns/01-resilience.md)
 - [02 — Event-driven architecture, CQRS, event sourcing](05-patterns/02-event-driven.md)
 - [03 — Microservices, service discovery, service mesh](05-patterns/03-microservices.md)
@@ -72,7 +94,8 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 - [05 — Data processing: batch, stream, lambda/kappa](05-patterns/05-data-processing.md)
 - [06 — Security for system design](05-patterns/06-security.md)
 
-### [06 — Case Studies](06-case-studies/) ⭐ Must-read
+### [06 — Case Studies](06-case-studies/README.md) ⭐ Must-read
+
 | # | Case study | Core lessons |
 |---|---|---|
 | 01 | [URL Shortener](06-case-studies/01-url-shortener.md) | ID generation, read-heavy caching, the warm-up problem |
@@ -100,12 +123,14 @@ A guide for senior/staff-level FAANG system design interviews, written to be the
 | 23 | [Search Engine / Log Search](06-case-studies/23-search-system.md) | Inverted index, sharding, scatter-gather |
 | 24 | [Leaderboard / Gaming](06-case-studies/24-leaderboard.md) | Sorted sets, real-time ranking at scale |
 
-### [07 — Real World](07-real-world/)
+### [07 — Real World](07-real-world/README.md)
+
 - [01 — Papers every senior engineer should know (summarized)](07-real-world/01-papers.md)
 - [02 — Famous outages and what they teach](07-real-world/02-outages-postmortems.md)
 - [03 — How big companies actually built it](07-real-world/03-company-architectures.md)
 
-### [08 — Cheat Sheets](08-cheatsheets/)
+### [08 — Cheat Sheets](08-cheatsheets/README.md)
+
 - [01 — Numbers every engineer should know](08-cheatsheets/01-numbers.md)
 - [02 — Trade-off tables](08-cheatsheets/02-tradeoffs.md)
 - [03 — Technology picker](08-cheatsheets/03-technology-picker.md)

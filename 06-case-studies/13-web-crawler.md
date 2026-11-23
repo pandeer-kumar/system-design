@@ -5,11 +5,13 @@
 ## 1. Requirements
 
 **Functional**
+
 - Start from seed URLs, download pages, extract links, crawl recursively
 - Store pages for indexing
 - Respect robots.txt, avoid traps, re-crawl based on freshness
 
 **Non-functional**
+
 - Scale: 1B pages/month (~400 pages/s; Google-scale is far higher)
 - **Politeness:** never overload a website (e.g., ≤1 request/s per host)
 - Robust: handle malformed HTML, traps, slow servers, and failures
@@ -47,6 +49,7 @@ Back queues (B1..Bm), each containing URLs of a SINGLE host
           ↓
 Heap of (next_allowed_fetch_time, back_queue) → fetcher takes a queue whose host is allowed now
 ```
+
 - Each back queue maps to **one host**, and a host maps to exactly one back queue. After fetching from host H, set H's next allowed time = now + delay (from robots.txt `crawl-delay` or adaptive, based on response time).
 - Back queues are refilled from the front queues when empty.
 
@@ -55,11 +58,13 @@ Heap of (next_allowed_fetch_time, back_queue) → fetcher takes a queue whose ho
 ## 5. Deep dive: dedup
 
 **URL dedup ("have we seen this URL?"):**
+
 - Normalize URLs first: lowercase the host, remove default ports and fragments, sort query params, remove tracking params.
 - Billions of URLs: a **Bloom filter** in memory (~10 bits/URL for 1% FP; 10B URLs ≈ 12 GB) for a fast negative check, backed by a persistent store (RocksDB/Bigtable) of URL hashes (with metadata: last crawl time, checksum).
 - A Bloom filter false positive means occasionally skipping a new URL, which is acceptable.
 
 **Content dedup:**
+
 - Exact: hash (SHA-256/MD5) of normalized content; ~30% of the web is duplicate.
 - Near-duplicate: **SimHash** (Google used it for near-dup detection) or MinHash. Pages within a small Hamming distance are duplicates.
 

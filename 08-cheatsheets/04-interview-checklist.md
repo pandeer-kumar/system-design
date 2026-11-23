@@ -1,6 +1,7 @@
 # Interview Day Checklist and Common Mistakes
 
 ## Before the interview
+
 - [ ] Practiced 10+ case studies end to end under a 45-minute timer
 - [ ] Can draw from memory: consistent hashing ring, Raft log replication, Kafka partitions/ISR, cache-aside with races, 2PC vs saga, idempotency key flow, outbox
 - [ ] Know the numbers sheet
@@ -10,6 +11,7 @@
 ## During: the checklist
 
 **Requirements (5 min)**
+
 - [ ] Functional: 3–5 core features, explicit out-of-scope
 - [ ] Scale: DAU, QPS (avg/peak), data size, read:write ratio
 - [ ] Latency and availability targets
@@ -17,24 +19,29 @@
 - [ ] Hot spots / contention expected? (celebrities, flash sales, viral content)
 
 **Estimation (3–5 min)**
+
 - [ ] Only the numbers that drive decisions
 - [ ] Peak, not just average
 
 **API + data (5 min)**
+
 - [ ] Endpoints with idempotency where needed
 - [ ] Entities + **access patterns** → partition keys
 
 **High-level (10 min)**
+
 - [ ] Walk one read and one write request end to end
 - [ ] Every functional requirement covered
 
 **Deep dives (15–20 min)**: pick the hardest 2–3
+
 - [ ] Concurrency/contention resolution
 - [ ] Scaling the bottleneck (fan-out, hot keys, sharding)
 - [ ] Consistency across components (outbox, saga, cache invalidation)
 - [ ] Failure handling (what if X dies, times out, or is slow?)
 
 **Wrap-up (3–5 min)**
+
 - [ ] Bottlenecks at 10×
 - [ ] Failure modes + mitigations
 - [ ] Monitoring: SLOs, key metrics, alerts

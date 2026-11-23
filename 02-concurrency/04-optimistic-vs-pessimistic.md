@@ -48,6 +48,7 @@ UpdateItem(Key={id:1}, UpdateExpression="SET qty = qty - :one",
 ```
 
 ### etcd/ZooKeeper
+
 - etcd: `Txn().If(Compare(ModRevision(key), "=", rev)).Then(Put(...))`
 - ZooKeeper: `setData(path, data, expectedVersion)`
 
@@ -79,6 +80,7 @@ See [05-distributed-locks.md](05-distributed-locks.md). Needed when the protecte
 ## The hybrid that's usually correct: "reservation with expiry"
 
 For anything involving user think time (checkout, booking):
+
 1. **Short pessimistic or atomic step:** atomically flip the seat from `AVAILABLE` to `HELD(user, expires_at)`.
 2. **User completes payment** (minutes), with no locks held.
 3. **Confirm with an optimistic check:** `UPDATE seats SET status='BOOKED' WHERE id=? AND held_by=? AND status='HELD'`.

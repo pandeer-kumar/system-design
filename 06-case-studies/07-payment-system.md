@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - Accept payments from customers (card, wallet) for orders
 - Payouts to merchants/sellers
 - Refunds, partial refunds
@@ -12,6 +13,7 @@
 - Ledger of all money movement (audit)
 
 **Non-functional**
+
 - **Correctness above all:** never double-charge, never lose a payment, balances always reconcile
 - Durability: zero data loss for committed transactions
 - Availability: 99.99% for payment acceptance (but **correctness > availability**)
@@ -56,6 +58,7 @@ Merchant/Client → API Gateway (auth, rate limit)
 We call PSP: charge($50, idem=attempt_123) → TIMEOUT
 Did it charge? Unknown.
 ```
+
 - **Never** mark it FAILED and let the user retry with a new attempt (that's a double charge).
 - Mark the attempt `UNKNOWN`/`PENDING`. **Retry with the same idempotency key** (safe), or **query the PSP** for the status of `attempt_123`.
 - A background **resolver** polls the PSP for unknown attempts; PSP webhooks also report the final status.
@@ -69,6 +72,7 @@ UPDATE payment_intents
 SET status='SUCCEEDED', version=version+1
 WHERE id=:id AND status='PROCESSING';    -- conditional transition
 ```
+
 - Webhooks and synchronous responses can race (the PSP webhook arrives before our sync response handler runs). Conditional transitions make both paths idempotent; whichever arrives first wins, and the other is a no-op.
 - Never allow `SUCCEEDED → FAILED`. Encode valid transitions.
 
@@ -92,6 +96,7 @@ txn_2:
 ```
 
 **Principles:**
+
 - **Immutable, append-only.** Never update or delete entries; corrections are new reversing entries.
 - **Balances are derived** (sum of entries), optionally cached in a balance table updated **in the same transaction** as the entries.
 - **Invariant check:** for every transaction, `sum(debits) == sum(credits)`. Enforce it in code + DB constraint/trigger + continuous audit.
@@ -99,6 +104,7 @@ txn_2:
 - Multi-currency: entries are per currency; FX conversion is an explicit transaction through FX accounts.
 
 **Concurrency on balances:**
+
 - Hot accounts (the platform fee account, which gets every transaction) are a contention point if you update a balance row on every write. Fixes: don't maintain a running balance for hot accounts (compute by aggregation), **shard the account** into sub-accounts, or batch updates.
 - Overdraft prevention for wallet balances: `UPDATE balances SET amount = amount - :x WHERE account=? AND amount >= :x` inside the same transaction as the ledger entries, or serializable isolation.
 
@@ -119,6 +125,7 @@ That's a mini-saga with **recovery points**. Stripe's idempotency key design rec
 ## 8. Deep dive: reconciliation
 
 The external world is the truth for money movement. Daily (or more frequently):
+
 - Download PSP **settlement reports** and bank statements.
 - Match each external record to internal ledger entries (by PSP reference).
 - Classify mismatches: missing internally (we lost a success → fix), missing externally (we think success, PSP says no → investigate), amount mismatch.

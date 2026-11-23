@@ -47,6 +47,7 @@ L4 load balancers route by IP and port (fast, opaque). L7 load balancers underst
 | WebRTC | Peer-to-peer UDP | Lowest latency, P2P | Complex (STUN/TURN/ICE) | Voice/video calls |
 
 ### Running WebSockets at scale (common deep dive)
+
 - Connections are **stateful**: you need a mapping of user → gateway server (in Redis or a presence service).
 - Load balancing: L4 or L7 with sticky connections. **Rebalancing is hard** because connections are long-lived.
 - **Deploys drain connections.** Clients must reconnect with jitter, or you get a thundering herd.

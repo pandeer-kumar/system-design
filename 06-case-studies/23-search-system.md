@@ -5,12 +5,14 @@
 ## 1. Requirements (e-commerce product search; variations noted)
 
 **Functional**
+
 - Keyword search with filters (category, price, brand), facets (counts per filter), sorting
 - Typo tolerance, synonyms
 - Newly added or updated products searchable within ~1 minute
 - Ranking by relevance + business signals (sales, ratings, ads)
 
 **Non-functional**
+
 - 500M products; 50K QPS peak; p99 < 200ms
 - Index updates: 10K/s (price and stock changes)
 - Highly available

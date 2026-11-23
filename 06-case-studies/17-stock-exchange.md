@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Place orders (limit, market), cancel orders
 - Match buy and sell orders by **price-time priority**
 - Publish market data (order book updates, trades)
 - Risk checks before acceptance (buying power, position limits)
 
 **Non-functional**
+
 - Latency: **microseconds** for matching (p99 < 100µs inside the engine); ms end to end
 - Throughput: millions of orders/s across symbols; a hot symbol at ~100K+ orders/s
 - **Fairness and determinism:** the same input gives the same output; strict ordering
@@ -20,6 +22,7 @@
 ## 2. Order book
 
 Per symbol:
+
 - **Bids:** sorted by price descending, then time ascending
 - **Asks:** sorted by price ascending, then time ascending
 - Structure: a map of price level → FIFO queue of orders (sorted map or array indexed by price ticks), plus an order_id → order index for O(1) cancels.

@@ -29,6 +29,7 @@
 ## Storage engines: B-Tree vs LSM-Tree (know internals)
 
 ### B-Tree (Postgres, MySQL InnoDB, most RDBMS)
+
 - Balanced tree of fixed-size pages (4–16 KB); updates in place.
 - **Writes:** find the page, modify it, write the WAL first for crash safety. Page splits on overflow.
 - ✅ Fast reads (O(log n), typically 3–4 levels), predictable latency, good for read-heavy loads.
@@ -41,13 +42,14 @@ Write → WAL (sequential) + MemTable (in-memory sorted)
       → background compaction merges SSTables into larger levels
 Read  → MemTable → L0 SSTables → L1 → ... (Bloom filters skip SSTables)
 ```
+
 - ✅ **Very high write throughput** (sequential I/O only), good compression.
 - ❌ Reads may check multiple SSTables (read amplification); Bloom filters help point lookups but not ranges.
 - ❌ **Compaction** uses CPU and I/O, and causes latency spikes; space amplification.
 - **Compaction strategies:**
-  - **Size-tiered (STCS):** merge similar-size tables. Write-optimized, high space amplification.
-  - **Leveled (LCS):** non-overlapping levels. Read-optimized, more write amplification.
-  - **Time-window (TWCS):** for time-series with TTL; drops whole expired files.
+    - **Size-tiered (STCS):** merge similar-size tables. Write-optimized, high space amplification.
+    - **Leveled (LCS):** non-overlapping levels. Read-optimized, more write amplification.
+    - **Time-window (TWCS):** for time-series with TTL; drops whole expired files.
 - **Deletes are tombstones.** Too many tombstones make reads slow (a Cassandra classic: queue-like workloads on Cassandra are an anti-pattern).
 
 | | B-Tree | LSM |
@@ -86,6 +88,7 @@ Read  → MemTable → L0 SSTables → L1 → ... (Bloom filters skip SSTables)
 7. **Move to distributed SQL** or NoSQL for specific workloads.
 
 ### Sharding pain points
+
 - Cross-shard joins and transactions
 - Resharding (use many logical shards mapped to fewer physical nodes)
 - Global unique constraints
@@ -104,12 +107,14 @@ USER#42         ORDER#2024-01-05#9    total, status
 USER#42         ORDER#2024-02-11#12   ...
 ORDER#9         ITEM#1                sku, qty
 ```
+
 - "Get user + recent orders" = one Query on `PK=USER#42`.
 - GSIs for alternative access patterns (eventually consistent).
 
 ## Schema migrations without downtime (senior topic)
 
 **Expand → migrate → contract:**
+
 1. Add the new column/table (nullable, no default rewrite)
 2. Dual-write to old and new
 3. Backfill in batches (throttled)

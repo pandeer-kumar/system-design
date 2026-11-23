@@ -12,15 +12,18 @@
 ## Options
 
 ### 1. Database auto-increment
+
 - ✅ Simple, compact, ordered.
 - ❌ Single point of failure and bottleneck; leaks business volume; hard across shards.
 - **Multi-master variant:** server k of N generates `k, k+N, k+2N...` (Flickr ticket servers used two MySQL servers with odd and even IDs). Not time-ordered across servers.
 
 ### 2. UUID v4 (random, 128-bit)
+
 - ✅ No coordination at all; generate anywhere, including clients (for idempotent creates).
 - ❌ 128 bits; **random → terrible B-Tree locality** (page splits, cache misses on inserts); not sortable.
 
 ### 3. UUID v7 (time-ordered, 128-bit; RFC 9562, 2024)
+
 - 48-bit Unix ms timestamp + random bits.
 - ✅ No coordination, **time-sortable**, good index locality. **The modern default if 128 bits is OK.**
 - ULID is a similar earlier spec (Crockford base32 encoding).
@@ -29,6 +32,7 @@
 ```
 | 1 bit sign | 41 bits timestamp (ms since custom epoch) | 10 bits machine ID | 12 bits sequence |
 ```
+
 - 41 bits of ms ≈ **69 years**.
 - 10 bits → 1,024 machines (often split 5 datacenter + 5 worker).
 - 12 bits → **4,096 IDs per ms per machine** (~4M/s per machine).
@@ -38,6 +42,7 @@
 - Variants: Instagram (shard ID embedded: 41 time + 13 shard + 10 sequence, generated inside Postgres with PL/pgSQL), Discord, Sony Sonyflake (10ms units, longer life), Baidu UidGenerator.
 
 ### 5. Segment / range allocation (Meituan Leaf, "Hi/Lo")
+
 - A central DB hands out **ranges** (e.g., 1,000 IDs at a time) to each app server: `UPDATE seq SET max_id = max_id + 1000 WHERE biz_tag='order' RETURNING max_id`.
 - The server serves IDs from memory; it prefetches the next segment when 10–20% remain (**double buffering**).
 - ✅ Very fast, compact, monotonic per server, survives brief DB outages.
@@ -59,6 +64,7 @@ For strictly monotonic global IDs (rare need): a single leader issuing sequence 
 ## Special cases
 
 ### Short codes (URL shortener)
+
 - Base62 encode a 64-bit counter or Snowflake → 7 characters gives 62^7 ≈ 3.5 trillion values.
 - Avoid sequential guessability: encode with a bijective shuffle (multiply by a large coprime mod 62^7, or Feistel cipher), or use random codes plus a uniqueness check.
 - See [06-case-studies/01-url-shortener.md](../06-case-studies/01-url-shortener.md).

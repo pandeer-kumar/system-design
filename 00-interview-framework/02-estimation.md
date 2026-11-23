@@ -47,6 +47,7 @@ The goal is **orders of magnitude** that drive decisions, not precision.
 | TLS handshake (new connection) | 1–2 RTTs |
 
 **Takeaways:**
+
 - Memory is ~100× faster than SSD, and SSD is ~100× faster than HDD for random access.
 - Cross-region round trips (~100ms) dominate everything. **Synchronous cross-region replication costs 100ms+ per write.**
 - Sequential I/O is fast even on disk. That's why log-structured designs (Kafka, LSM trees) win for writes.
@@ -98,20 +99,25 @@ The goal is **orders of magnitude** that drive decisions, not precision.
 **Assumptions:** 300M DAU, each reads the timeline 10×/day and posts 0.5 tweets/day. Average 200 followers per user.
 
 **Writes:**
+
 - Tweets: 300M × 0.5 = 150M/day ≈ **1,700 tweets/s avg**, ~5K/s peak
 - Fan-out on write: 150M × 200 = 30B timeline inserts/day ≈ **350K inserts/s** ← this is the real write load
 
 **Reads:**
+
 - 300M × 10 = 3B timeline reads/day ≈ **35K QPS avg**, ~100K peak
 
 **Storage:**
+
 - Tweet: ~1 KB with metadata → 150M × 1 KB = 150 GB/day → **~55 TB/year** (before replication ×3)
 - Media is separate and much larger: say 10% of tweets have a 500 KB image → 7.5 TB/day
 
 **Cache:**
+
 - Timeline cache: 300M users × 800 tweet IDs × 8 bytes ≈ 2 TB → fits in a Redis cluster of roughly 30–50 nodes
 
 **Decisions it drives:**
+
 - 350K fan-out writes/s → need async fan-out via queue, sharded timeline store
 - Celebrities with 100M followers → fan-out on write is impossible for them → hybrid approach
 - Reads ≫ writes → precompute timelines

@@ -14,16 +14,19 @@
 | **StampedLock / seqlock** | Optimistic reads with validation | Very read-heavy, small data |
 
 ### Read-write lock pitfalls
+
 - **Writer starvation:** a constant stream of readers blocks writers forever. Fair RW locks queue readers behind waiting writers.
 - RW locks have more overhead than a mutex. They only pay off when read critical sections are long and reads dominate.
 
 ### Semaphores as a system design tool
+
 - **Bulkhead:** a semaphore of 20 for calls to the payment service. When it's exhausted, fail fast instead of piling up threads.
 - **Concurrency limiting:** max 100 in-flight requests per downstream (more adaptive than rate limiting; see Netflix's `concurrency-limits` library).
 
 ## Deadlock
 
 ### The four Coffman conditions (all must hold)
+
 1. **Mutual exclusion:** a resource is held exclusively.
 2. **Hold and wait:** holding one resource while waiting for another.
 3. **No preemption:** resources can't be forcibly taken.
@@ -32,6 +35,7 @@
 Break any one and deadlock is impossible.
 
 ### Prevention strategies
+
 | Strategy | Breaks | Example |
 |---|---|---|
 | **Global lock ordering** | Circular wait | Always lock accounts in ascending ID order when transferring |
@@ -59,15 +63,17 @@ COMMIT;
 ```
 
 ### Database deadlocks
+
 - Databases **detect** deadlocks (wait-for graph cycle detection) and abort one transaction (the victim).
 - **The application must retry** on deadlock errors (MySQL `1213`, Postgres `40P01`).
 - Reduce them: consistent access order, short transactions, proper indexes (otherwise you lock more rows than intended, or gap locks in MySQL).
 
 ### Distributed deadlock
+
 - Spanning multiple nodes means no single wait-for graph. Detection is hard.
 - Usual approach: **timeouts** (assume deadlock after X seconds) or **wound-wait / wait-die** using timestamps:
-  - **Wait-die:** an older transaction waits for a younger one; a younger one requesting from an older one aborts ("dies").
-  - **Wound-wait:** an older transaction preempts ("wounds") the younger one; a younger one waits. (Spanner uses wound-wait.)
+    - **Wait-die:** an older transaction waits for a younger one; a younger one requesting from an older one aborts ("dies").
+    - **Wound-wait:** an older transaction preempts ("wounds") the younger one; a younger one waits. (Spanner uses wound-wait.)
 
 ## Livelock and starvation
 
@@ -80,6 +86,7 @@ COMMIT;
 ```
 Producers → [ bounded queue (capacity N) ] → Consumers
 ```
+
 - When the queue is full, producers **block, drop, or get rejected**. This is backpressure.
 - When the queue is empty, consumers wait (condition variable or blocking queue).
 - **This is the same pattern as Kafka, SQS, and every work queue in system design.** The bounded size is what keeps the system stable under overload.

@@ -8,6 +8,7 @@
 4. **Re-do it a week later** without looking.
 
 Every case study follows the same structure:
+
 - Requirements (functional, non-functional)
 - Estimation
 - API and data model
@@ -19,6 +20,7 @@ Every case study follows the same structure:
 ## Priority order (if time is limited)
 
 **Tier 1, must do** (they cover ~80% of the concepts):
+
 1. [Rate Limiter](02-rate-limiter.md): atomicity, distributed counters
 2. [Key-Value Store](03-key-value-store.md): the whole distributed-systems toolkit
 3. [News Feed](04-news-feed.md): fan-out, hot users, caching

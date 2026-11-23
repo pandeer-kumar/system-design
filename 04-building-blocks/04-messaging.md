@@ -13,12 +13,14 @@
 ## Two families
 
 ### Message queues (traditional brokers)
+
 - Message is consumed and **deleted** (acked). Competing consumers share work.
 - Per-message acks, visibility timeouts, redelivery, dead-letter queues.
 - Examples: **RabbitMQ, ActiveMQ, AWS SQS, Google Cloud Tasks**.
 - Good for: **task/job queues**, work distribution, RPC-style async work.
 
 ### Log-based streams
+
 - Append-only, **partitioned, replicated log**. Messages are retained (by time or size) regardless of consumption.
 - Consumers track **offsets**; can **replay**; many independent consumer groups.
 - Order is guaranteed **within a partition**.
@@ -40,12 +42,14 @@
 ## Kafka internals (frequently probed)
 
 ### Structure
+
 - **Topic** → **partitions** (ordered, append-only logs) → **segments** on disk.
 - Each partition has a **leader** and **followers** (replication factor, e.g., 3).
 - **Producers** choose the partition: by key hash (same key → same partition → ordered), round-robin/sticky if keyless.
 - **Consumer groups:** each partition is assigned to **exactly one consumer** in a group. Parallelism = number of partitions.
 
 ### Why Kafka is fast
+
 - **Sequential disk I/O** (append-only)
 - **OS page cache** (doesn't manage its own cache)
 - **Zero-copy** (`sendfile`) from page cache to socket
@@ -53,17 +57,19 @@
 - **Partitioning** for parallelism
 
 ### Replication and durability
+
 - **ISR (In-Sync Replicas):** followers caught up within `replica.lag.time.max.ms`.
 - **`acks`:**
-  - `acks=0`: fire and forget
-  - `acks=1`: leader wrote it (lost if the leader dies before replication)
-  - `acks=all`: all ISR have it. With `min.insync.replicas=2` (RF=3), it survives one broker failure without loss.
+    - `acks=0`: fire and forget
+    - `acks=1`: leader wrote it (lost if the leader dies before replication)
+    - `acks=all`: all ISR have it. With `min.insync.replicas=2` (RF=3), it survives one broker failure without loss.
 - **High watermark:** consumers only read up to the offset replicated to all ISR.
 - **`unclean.leader.election.enable=false`:** never elect an out-of-sync replica (prefers unavailability over data loss).
 - **Leader epoch** fences stale leaders and fixes log divergence after failover.
 - **KRaft** (Kafka 3.3+ production-ready, ZooKeeper removed in 4.0): metadata managed by a Raft quorum of controllers.
 
 ### Consumer semantics
+
 - **Commit offset after processing** → at-least-once (crash between process and commit = reprocessing).
 - **Commit before processing** → at-most-once.
 - **Exactly-once:** transactions (consume-transform-produce within Kafka) or storing offsets with results atomically.
@@ -71,11 +77,13 @@
 - **Consumer lag** = latest offset − committed offset. **The key metric to monitor.**
 
 ### Partition count trade-offs
+
 - More partitions → more parallelism, but more open files, longer leader elections, more memory, and longer rebalances.
 - You **can't reduce** partitions, and increasing them **breaks key → partition mapping** (ordering for existing keys changes). Over-provision up front (e.g., 2–3× expected consumer count).
 
 ### Poison messages and retries in Kafka
 A message that always fails blocks its partition. Patterns:
+
 - **Retry topics** with delays (`orders.retry.1m`, `orders.retry.10m`) → **DLQ** after N attempts (Uber's pattern)
 - Careful: moving a message to a retry topic **breaks per-key ordering**. If order matters, block that key (park subsequent messages for that key).
 
@@ -83,6 +91,7 @@ A message that always fails blocks its partition. Patterns:
 Keep only the **latest value per key** (tombstone = null value deletes). Turns a topic into a durable changelog/table. Used for Kafka Streams state stores and `__consumer_offsets`.
 
 ## SQS specifics
+
 - **Standard:** at-least-once, best-effort ordering, nearly unlimited throughput.
 - **FIFO:** exactly-once processing within a 5-minute dedup window (dedup ID), ordered per **message group ID**; ~300 TPS per group, higher with batching and high-throughput mode.
 - **Visibility timeout:** a received message is hidden for N seconds; if not deleted in time, it reappears (so set it above max processing time, or extend it via heartbeat).
@@ -90,6 +99,7 @@ Keep only the **latest value per key** (tombstone = null value deletes). Turns a
 - Long polling (`WaitTimeSeconds=20`) reduces empty receives and cost.
 
 ## RabbitMQ specifics
+
 - AMQP: **exchanges** (direct, topic, fanout, headers) route to **queues** via bindings.
 - Push-based with **prefetch** (QoS) limits for backpressure.
 - Quorum queues (Raft) for durability.

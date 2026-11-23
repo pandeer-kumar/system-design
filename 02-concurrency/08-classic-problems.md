@@ -15,6 +15,7 @@ if inventory.get(sku) > 0:      # both see 1
 ```
 
 **Solutions:**
+
 | Approach | How | When |
 |---|---|---|
 | Atomic conditional update | `UPDATE stock SET qty=qty-1 WHERE sku=? AND qty>0` | Default for counts |
@@ -30,6 +31,7 @@ if inventory.get(sku) > 0:      # both see 1
 **Problem:** read-modify-write on a counter loses increments.
 
 **Solutions:**
+
 - Atomic increment (`INCR`, `UPDATE x = x + 1`)
 - **Hot counter:** shard into N sub-counters (`likes:post:1:shard:{0..N-1}`), increment a random shard, sum on read (and cache the sum)
 - **Write-behind batching:** buffer increments in memory or Kafka, flush aggregated deltas every second
@@ -44,6 +46,7 @@ See [06-case-studies/19-distributed-counter.md](../06-case-studies/19-distribute
 **Problem:** a hot cache key expires, and 10,000 requests miss at once and hit the DB together.
 
 **Solutions:**
+
 - **Request coalescing / single-flight:** only one request recomputes; others wait for its result (Go `singleflight`, a per-key promise).
 - **Lock on recompute:** `SET lock:key NX PX 5000`. The winner recomputes; losers serve stale data or wait briefly.
 - **Stale-while-revalidate:** serve the stale value and refresh in the background.
@@ -67,6 +70,7 @@ The same pattern also appears as a **reconnect storm** (every client reconnects 
 **Problem:** "Update profile" and then "delete profile" are processed in reverse order by parallel workers.
 
 **Solutions:**
+
 - **Partition by entity key** so a single consumer per partition preserves order (Kafka, Kinesis, SQS FIFO message groups)
 - **Version numbers / sequence numbers:** reject or reorder stale events (`if event.version <= current.version: skip`)
 - **Last-writer-wins with logical timestamps** (careful: LWW with wall clocks loses data)
@@ -80,6 +84,7 @@ The same pattern also appears as a **reconnect storm** (every client reconnects 
 **Problem:** a network partition leads both sides to elect a leader, and both accept writes.
 
 **Solutions:**
+
 - **Quorum-based election** (majority required: with 5 nodes, a side needs 3; at most one side can have a majority)
 - **Fencing tokens / epochs** reject the old leader's writes
 - **STONITH** ("shoot the other node in the head"): forcibly power off the old primary before promoting
@@ -92,6 +97,7 @@ The same pattern also appears as a **reconnect storm** (every client reconnects 
 **Problem:** a celebrity's posts, a viral video, or a flash-sale SKU sends a disproportionate share of traffic to one shard.
 
 **Solutions:**
+
 - **Read hot key:** replicate it to multiple cache nodes (key suffix `#1..#N`, random pick), local in-process caching, CDN
 - **Write hot key:** split into sub-keys (sharded counters), batch writes, queue and serialize
 - **Detect:** per-key metrics, top-K sketches (Count-Min Sketch) on the proxy
@@ -109,6 +115,7 @@ T1: writes v1 into cache   ← stale forever (until TTL)
 ```
 
 **Solutions:**
+
 - Short TTLs as a safety net
 - **Delete cache after DB write** (not update), plus **delayed double-delete** (delete again after ~1s)
 - Versioned cache values: only `SET` if version is newer (Lua compare)
@@ -132,6 +139,7 @@ See [04-building-blocks/02-caching.md](../04-building-blocks/02-caching.md).
 **Problem:** the scheduler runs on 3 instances for HA, so every job fires 3 times. With one instance, it's a single point of failure.
 
 **Solutions:**
+
 - Leader election (only the leader schedules), with fencing
 - **Claim with conditional update:** `UPDATE jobs SET owner=?, lease_until=? WHERE id=? AND (owner IS NULL OR lease_until < now())`
 - `SELECT ... FOR UPDATE SKIP LOCKED`
@@ -154,6 +162,7 @@ See [06-case-studies/11-job-scheduler.md](../06-case-studies/11-job-scheduler.md
 **Problem:** two users register "alice" at the same time across different app servers.
 
 **Solutions:**
+
 - **Unique index** in the DB (the only correct answer for a single DB)
 - Sharded DB: unique index works within a shard, so **shard by username** for the uniqueness table (separate from the user table sharded by user_id)
 - Multi-region: route "claim username" to a single home region, or use a globally consistent store (Spanner, DynamoDB global tables do **not** guarantee this, since they're LWW)
@@ -173,6 +182,7 @@ See [06-case-studies/11-job-scheduler.md](../06-case-studies/11-job-scheduler.md
 **Problem:** debit account A (shard 1) and credit account B (shard 2) atomically.
 
 **Solutions:**
+
 - 2PC (atomic, but blocking, coordinator SPOF, latency)
 - **Saga** with compensations (debit A → credit B; on failure, refund A)
 - **Ledger with an intermediate state:** write a "transfer pending" journal entry, then apply both sides idempotently

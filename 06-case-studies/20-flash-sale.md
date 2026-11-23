@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Limited inventory (e.g., 10,000 units) of an item at a discounted price, starting at a fixed time
 - Users click "buy"; first come, first served until sold out
 - Limit per user (1 unit)
 - Successful buyers complete checkout/payment within N minutes or the unit is released
 
 **Non-functional**
+
 - **Peak: 1M+ requests/s** at the sale start, for a few seconds, mostly for one or a few SKUs
 - **Never oversell**; underselling (a few unsold units briefly) is OK
 - The rest of the site must stay up
@@ -45,10 +47,12 @@ redis.call('DECR', KEYS[1])
 redis.call('SADD', KEYS[2], ARGV[1])
 return 1
 ```
+
 - Hash tags (`{sku}`) keep both keys on the same shard.
 - ~100K+ ops/s on one Redis shard. If that's not enough: **split the stock across N shards** (`stock:{sku}:0..N-1`, each with 10K/N units). Route a user to `hash(user) % N`; on "sold out" in their shard, optionally try another (or accept slight underselling until rebalance).
 
 **Durability concern:** Redis async replication means a failover could lose decrements, which risks **oversell**. Mitigations:
+
 - The DB is the final arbiter: the order service does `UPDATE inventory SET sold = sold + 1 WHERE sku=? AND sold < total` (or claims a pre-generated unit row) before confirming. A Redis "win" that fails at the DB gets an apology/refund (rare).
 - Or use Redis with `WAIT` / MemoryDB / a Raft-backed in-memory store for the counter.
 

@@ -30,6 +30,7 @@ Most data-center systems assume **crash-recovery with omission and timing failur
 On a single machine, things mostly work or crash entirely. In a distributed system, **some parts fail while others work**, and **you often can't tell which**.
 
 When you send a request and get no response:
+
 - The request may be lost
 - The remote node may be down
 - The remote node may be slow (GC pause, overloaded)
@@ -41,12 +42,14 @@ When you send a request and get no response:
 ## Gray failures (the most dangerous in practice)
 
 The component isn't fully down; it's degraded. Health checks pass (they check "is the process up?") but real requests fail or are slow.
+
 - One disk with high latency
 - A NIC dropping 2% of packets
 - A node that serves health checks but times out on DB calls
 - A "zombie" leader that has lost its lease but doesn't know it yet
 
 Mitigations:
+
 - **Deep health checks** that exercise real dependencies (carefully, or you get cascading failure when a shared dependency dies)
 - **Outlier detection:** eject hosts with elevated error rate or latency (Envoy outlier detection)
 - **Client-side observability:** measure success from the caller's view
@@ -62,6 +65,7 @@ Partitions are real. Studies (Bailis & Kingsbury, "The Network is Reliable," 201
 ## Process pauses
 
 A process can freeze for seconds without knowing it:
+
 - Stop-the-world GC (Java pauses of seconds to tens of seconds on large heaps, historically)
 - VM live migration or steal time
 - Swapping or page faults
@@ -95,6 +99,7 @@ The system enters a bad state that **persists even after the trigger is removed*
 ## Correlated failures
 
 Redundancy only helps if failures are independent. They often aren't:
+
 - Same bad deploy rolled out everywhere
 - Same bug triggered by the same input (a leap second, a poison message)
 - Shared dependency (DNS, auth, config service)
@@ -106,6 +111,7 @@ Redundancy only helps if failures are independent. They often aren't:
 ## Byzantine and data corruption (lightweight)
 
 Even without malicious nodes:
+
 - Use **checksums** on disk and network (TCP's 16-bit checksum misses errors at scale). S3, HDFS, and Kafka all checksum data.
 - **End-to-end checks:** verify at the application level, not just the transport.
 - Validate inputs. Poison messages can crash every consumer in turn. Use a dead-letter queue after N failures.

@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Post (text/media)
 - Follow users
 - View home timeline (posts from people you follow), reverse-chronological or ranked
 - Optional: likes/comments, notifications, search
 
 **Non-functional**
+
 - 300M DAU, 500M total users
 - Timeline load p99 < 200–300ms
 - Eventual consistency OK: a post can take a few seconds to appear in followers' feeds
@@ -20,6 +22,7 @@
 ## 2. Estimation
 
 (See [estimation](../00-interview-framework/02-estimation.md).)
+
 - Posts: ~150M/day ≈ 1.7K/s avg, ~5K/s peak
 - Timeline reads: ~3B/day ≈ 35K/s avg, ~100K/s peak
 - Average 200 followers → fan-out writes ≈ **350K/s**
@@ -45,6 +48,7 @@ timeline_cache: user_id → [post_id, post_id, ...]  (Redis list / sorted set, c
 
 ### Fan-out on write (push)
 When Alice posts, push the post ID into every follower's timeline cache.
+
 - ✅ **Reads are O(1)**: fetch the precomputed list.
 - ❌ Write amplification: 1 post × followers. **A celebrity with 100M followers = 100M writes per post.**
 - ❌ Wasted work for inactive followers.
@@ -52,11 +56,13 @@ When Alice posts, push the post ID into every follower's timeline cache.
 
 ### Fan-out on read (pull)
 At read time, fetch recent posts from everyone you follow and merge.
+
 - ✅ No write amplification; always fresh.
 - ❌ **Reads are expensive**: follow 1,000 people → 1,000 lookups and a k-way merge per timeline load.
 - ❌ Hard to hit < 200ms at 100K QPS.
 
 ### Hybrid (what Twitter, Instagram, and Facebook do)
+
 - **Normal users** (< ~10K–100K followers): fan-out on write.
 - **Celebrities** (above the threshold): **not** fanned out. At read time, fetch the celebrities' recent posts (heavily cached, since everyone reads them) and **merge** them into the precomputed timeline.
 - **Inactive users:** skip fan-out for users who haven't logged in for 30+ days; rebuild their timeline on demand when they return.

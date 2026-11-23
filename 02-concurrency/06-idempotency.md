@@ -3,6 +3,7 @@
 ## Why this matters more than almost anything else
 
 In a distributed system, **a timeout tells you nothing**. The request might have:
+
 1. Never arrived
 2. Arrived and failed
 3. Arrived, **succeeded**, and the response was lost
@@ -77,6 +78,7 @@ def handle(req, key):
 ```
 
 **Critical details:**
+
 - **Atomic claim:** use a unique constraint or conditional insert, never "check, then insert."
 - **Same transaction:** if the business write and the idempotency record are in the same DB, commit them together. Then a crash can't leave one without the other.
 - **External side effects** (calling a payment processor) can't share the DB transaction. Pass **your own idempotency key downstream** (Stripe → card network, your service → Stripe), and record **recovery points** for multi-step flows.
@@ -125,6 +127,7 @@ kafka.publish(event)    # fails or crashes → DB and event stream diverge
 Reversing the order doesn't help either. You can't atomically write to two systems without a distributed transaction.
 
 **Fix: Transactional Outbox**
+
 1. In the same DB transaction, write the business row **and** an `outbox` row.
 2. A relay (poller or CDC like Debezium reading the WAL) publishes outbox rows to Kafka, **at least once**.
 3. Consumers are idempotent (dedup by event ID).

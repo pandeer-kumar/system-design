@@ -22,12 +22,14 @@ Coordinator                Participant A        Participant B
 If the coordinator crashes **after participants vote YES but before sending the decision**, participants are **in doubt**. They can't commit (maybe someone voted NO) and can't abort (maybe the coordinator decided commit). They hold locks **until the coordinator recovers**.
 
 ### Other costs
+
 - Latency: 2 round trips plus forced log writes (fsyncs)
 - Locks held across the network round trips, which reduces throughput under contention
 - Coordinator is a SPOF (mitigate: replicate the coordinator log with consensus)
 - All participants must support XA or prepare (many systems don't: Kafka, most NoSQL, third-party APIs)
 
 ### Where 2PC works well
+
 - **Inside a distributed database** where participants are Paxos/Raft groups (the "participant" never fails permanently because it's itself replicated). **Spanner, CockroachDB, YugabyteDB** do 2PC across shards on top of consensus, which removes the blocking problem in practice.
 - XA transactions across homogeneous databases (rarely recommended; operationally painful).
 
@@ -64,16 +66,17 @@ If T3 fails → run C2, C1
 ### Saga pitfalls (interviewers love these)
 
 1. **No isolation.** Intermediate states are visible: other transactions can see "inventory reserved but payment not yet charged." Countermeasures:
-   - **Semantic locks:** mark records as PENDING; other operations treat PENDING specially
-   - **Commutative updates** where possible
-   - **Pessimistic view:** reorder steps so risky steps come last
-   - **Re-read values** before acting (version check)
+    - **Semantic locks:** mark records as PENDING; other operations treat PENDING specially
+    - **Commutative updates** where possible
+    - **Pessimistic view:** reorder steps so risky steps come last
+    - **Re-read values** before acting (version check)
 2. **Compensations must be idempotent and retryable.** They can be delivered more than once.
 3. **Compensations can fail.** Retry forever (with alerts), or escalate to manual intervention.
 4. **Some actions can't be compensated** (a sent email, a shipped package). Put them **last** (the "pivot transaction": steps before it are compensatable, steps after it are retriable until success).
 5. **Compensation isn't rollback.** A refund is a new transaction and leaves a trace (good for audit).
 
 ### Step types
+
 - **Compensatable** (before the pivot): can be undone
 - **Pivot:** the go/no-go point (e.g., charging the card)
 - **Retriable** (after the pivot): must eventually succeed, so retry until done
@@ -93,6 +96,7 @@ Relay process: read outbox → publish to Kafka → mark sent (or delete)
 ```
 
 **Relay options:**
+
 - **Polling publisher:** `SELECT ... FROM outbox WHERE sent=false ORDER BY id LIMIT 100 FOR UPDATE SKIP LOCKED`. Simple; adds DB load and some latency.
 - **CDC (log tailing):** Debezium reads the WAL/binlog and publishes outbox inserts. Low latency, no polling, preserves commit order. **Preferred at scale.**
 
@@ -101,6 +105,7 @@ Relay process: read outbox → publish to Kafka → mark sent (or delete)
 **Ordering:** publish with the aggregate ID as the Kafka key, so per-aggregate order is preserved.
 
 ### Related patterns
+
 - **Inbox:** consumer stores processed message IDs in the same transaction as its state change, for dedup.
 - **Listen to yourself:** a service writes only an event, then consumes its own event to update its DB (event sourcing-ish).
 - **CDC as an integration backbone:** stream DB changes to search indexes, caches, and analytics (avoids dual writes to Elasticsearch).
@@ -108,6 +113,7 @@ Relay process: read outbox → publish to Kafka → mark sent (or delete)
 ## Other approaches
 
 ### TCC (Try-Confirm-Cancel)
+
 - **Try:** reserve resources (e.g., hold $50 in a "frozen" balance)
 - **Confirm:** finalize the reservation
 - **Cancel:** release it
@@ -117,6 +123,7 @@ Relay process: read outbox → publish to Kafka → mark sent (or delete)
 Generalization of TCC: hold the resource with an expiry, confirm or let it expire. (Seat holds, inventory holds, payment authorizations: an auth is a reservation and capture is the confirmation.)
 
 ### Avoid distributed transactions entirely
+
 - **Redesign boundaries:** put the data that must change atomically in one service/DB. If two services always need atomic updates together, they may be one service.
 - **Co-locate by partition key:** the order and its line items share `order_id`, so it's a single-shard transaction.
 - **Accept eventual consistency** with reconciliation jobs that detect and fix drift.

@@ -12,11 +12,13 @@
 Writes → Leader → replication log → Followers
 Reads  → Leader (fresh) or Followers (possibly stale)
 ```
+
 - Examples: PostgreSQL, MySQL, MongoDB replica sets, Redis, Kafka (per partition), most Raft systems.
 - ✅ Simple, no write conflicts, easy to reason about.
 - ❌ The leader is a write bottleneck and failover is tricky.
 
 #### Synchronous vs asynchronous replication
+
 | | Sync | Async | Semi-sync |
 |---|---|---|---|
 | Write latency | Waits for replica ack | Immediate | Waits for ≥1 replica |
@@ -26,18 +28,21 @@ Reads  → Leader (fresh) or Followers (possibly stale)
 In practice: **quorum or semi-sync** (e.g., Raft majority, Postgres `synchronous_standby_names = ANY 1 (...)`).
 
 #### Replication log types
+
 - **Statement-based:** replay SQL. Breaks with non-determinism (`NOW()`, `RAND()`).
 - **WAL shipping (physical):** byte-level. Tied to storage format, so you can't replicate across versions.
 - **Logical (row-based):** row changes. Version-independent, enables **CDC** (Debezium, MySQL binlog row format).
 - **Trigger-based:** flexible, slow.
 
 #### Failover (where things go wrong)
+
 1. Detect leader failure (timeout; risk of false positives)
 2. Elect a new leader (the most up-to-date replica; consensus helps)
 3. Reconfigure clients to the new leader
 4. **Fence the old leader** so it stops accepting writes when it returns
 
 Failure modes:
+
 - **Lost writes:** async replication means the new leader lacks the old leader's last writes. If those writes generated IDs used elsewhere (e.g., Redis cache keys or a foreign system), you get inconsistency. (GitHub 2012 MySQL incident: auto-increment IDs reused after failover exposed private data in Redis.)
 - **Split brain:** both think they're leader. Fix with fencing and STONITH.
 - **Flapping:** timeout too short leads to repeated failovers.
@@ -47,12 +52,14 @@ Failure modes:
 ```
 Region A leader ⇄ Region B leader ⇄ Region C leader
 ```
+
 - Each region accepts writes locally and replicates asynchronously to the others.
 - Examples: multi-region apps, CouchDB, offline-first mobile apps (each device is a "leader"), collaborative editing, MySQL Group Replication multi-primary, DynamoDB Global Tables.
 - ✅ Local write latency in every region; survives region failure.
 - ❌ **Write conflicts.** The same key is modified in two regions concurrently.
 
 #### Conflict resolution strategies
+
 | Strategy | How | Trade-off |
 |---|---|---|
 | **Avoid conflicts** | Route all writes for a key to its "home" region | Best option when possible |
@@ -70,16 +77,19 @@ Topologies: all-to-all (most robust, but causality issues since messages can ove
 Client → writes to N replicas in parallel → success if W acknowledge
 Client → reads from N replicas → success if R respond → pick latest by version
 ```
+
 - Examples: Amazon Dynamo (the 2007 paper), Cassandra, Riak, ScyllaDB, Voldemort.
 - ✅ No failover needed; highly available for writes.
 - ❌ Weak consistency by default; conflict handling needed.
 
 #### Quorums
+
 - N = replicas, W = write acks required, R = read responses required.
 - **W + R > N** means read and write sets overlap, so a read sees at least one up-to-date replica.
 - Common: N=3, W=2, R=2. Write-heavy: W=1, R=3. Read-heavy: W=3, R=1.
 
 **Important: W + R > N does NOT give linearizability.** Edge cases:
+
 - A write that succeeded on fewer than W nodes (reported as failed) isn't rolled back; later reads may or may not see it.
 - Concurrent write and read: the read may see the new value on one replica and old on others.
 - Sloppy quorums break the overlap guarantee.
@@ -87,6 +97,7 @@ Client → reads from N replicas → success if R respond → pick latest by ver
 - To get linearizable reads with quorums you need **read repair synchronously before returning** (ABD algorithm), and linearizable writes need more (Cassandra uses Paxos for lightweight transactions, `IF NOT EXISTS`).
 
 #### Mechanisms to converge replicas
+
 - **Read repair:** on read, detect stale replicas and write the latest value back.
 - **Hinted handoff:** if a replica is down, another node stores the write with a "hint" and forwards it when the replica returns.
 - **Sloppy quorum:** accept writes on any N healthy nodes (not necessarily the "home" nodes). Better availability, weaker consistency.
@@ -108,6 +119,7 @@ With async followers, lag can be ms or minutes under load.
 Write → Head → Middle → Tail → ack
 Read  → Tail
 ```
+
 - Strong consistency (reads from the tail see only fully replicated writes), high throughput.
 - Latency grows with chain length; failures require chain reconfiguration (by an external master like ZooKeeper).
 - Used in: Azure Storage (variant), CRAQ (reads from any node with version checks), some object stores.

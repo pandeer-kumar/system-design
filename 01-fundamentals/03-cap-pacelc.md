@@ -3,6 +3,7 @@
 ## CAP theorem (Brewer 2000, proven by Gilbert & Lynch 2002)
 
 In the presence of a **network partition (P)**, a distributed system must choose between:
+
 - **Consistency (C):** here this means **linearizability**. Every read sees the most recent write, as if there were a single copy.
 - **Availability (A):** every request to a **non-failed** node gets a (non-error) response.
 

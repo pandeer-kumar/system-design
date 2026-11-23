@@ -38,6 +38,7 @@ Client → LB → Location-Based Service (stateless, read-only, in-memory geo in
                  → Business Service (details, cached) → Business DB (primary + replicas)
 Owner updates → Business DB → nightly/periodic rebuild of the geo index (or CDC incremental)
 ```
+
 - Read-heavy and the data is small, so **replicate the full index on every node**. No sharding needed (200M × ~100 bytes ≈ 20 GB; if that's too large, shard by region).
 - Cache popular searches (`geohash6 + filters → results`).
 

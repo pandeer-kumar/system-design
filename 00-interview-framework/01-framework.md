@@ -38,6 +38,7 @@ The interview is a **collaborative design review**, not a quiz. You are the tech
 ## Step 2: Estimate
 
 See [02-estimation.md](02-estimation.md). Only estimate what changes a decision:
+
 - Does it fit on one machine? (storage, memory, QPS)
 - Do we need sharding? How many shards?
 - Can the cache hold the working set?
@@ -52,6 +53,7 @@ WS   /v1/drivers/location  stream {lat, lng, ts}
 ```
 
 Then the core entities and, more importantly, the **access patterns**:
+
 - "Get all rides for a rider, newest first" → partition by rider_id, sort by created_at desc
 - "Find drivers within 2km" → geo index
 
@@ -76,6 +78,7 @@ Pick the 2–3 hardest problems. Often the interviewer steers you, but **proacti
 > "The two hardest parts here are (1) preventing double-booking when 10,000 people hit the same seat, and (2) keeping the seat map fresh without hammering the DB. Want me to start with the first one?"
 
 For each deep dive:
+
 1. State the problem precisely, including the failure scenario
 2. Give 2–3 options
 3. Compare them on the dimensions that matter (consistency, latency, complexity, cost)
@@ -83,6 +86,7 @@ For each deep dive:
 5. Say how it fails and how you'd detect that
 
 Common deep-dive themes:
+
 - **Concurrency/contention:** double-booking, inventory, counters, ordering
 - **Hot spots:** celebrity users, viral content, hot partitions
 - **Consistency across services:** distributed transactions, outbox, sagas

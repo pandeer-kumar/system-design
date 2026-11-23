@@ -7,6 +7,7 @@ How a server handles many concurrent requests determines its scalability profile
 ```
 Request → dedicated thread → blocking DB call → blocking HTTP call → response
 ```
+
 - Examples: classic Java Servlet/Tomcat, Spring MVC, Rails/Puma, Django (with workers).
 - ✅ Simple mental model, easy debugging, stack traces make sense.
 - ❌ Each thread ~1 MB stack plus context switch costs. Ceiling of roughly a few thousand concurrent requests.
@@ -17,6 +18,7 @@ Request → dedicated thread → blocking DB call → blocking HTTP call → res
 ```
 Single thread: loop { events = epoll_wait(); for e in events: run callback(e) }
 ```
+
 - Examples: Node.js, Nginx, Redis, Netty, Envoy, Python asyncio, Vert.x.
 - Uses OS readiness APIs: **epoll** (Linux), kqueue (BSD/macOS), IOCP (Windows), **io_uring** (Linux, completion-based).
 - ✅ Handles 10K–1M+ connections with few threads (the C10K/C10M problem).

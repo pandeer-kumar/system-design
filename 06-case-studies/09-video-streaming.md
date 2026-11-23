@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Upload videos (YouTube) or ingest studio content (Netflix)
 - Transcode into multiple resolutions and codecs
 - Stream with adaptive quality on any device
 - Metadata: title, description, thumbnails, view counts, search, recommendations
 
 **Non-functional**
+
 - YouTube: 500+ hours uploaded per minute; billions of views/day
 - Playback start < 2s; minimal rebuffering
 - High availability for playback; upload processing can take minutes
@@ -39,6 +41,7 @@
 A 2-hour 4K video transcoded serially takes hours. Splitting into chunks gives **massive parallelism** (thousands of workers), with retries at chunk granularity. Netflix's encoding pipeline uses chunk-based parallel encoding with per-title / per-shot optimized bitrate ladders.
 
 ### Orchestration and concurrency
+
 - A DAG/workflow engine (Netflix Conductor/Cosmos, Temporal, Airflow-like) tracks task state.
 - Tasks are **idempotent** (output path deterministic from `(video_id, segment, rendition)`, so a re-run overwrites the same object).
 - At-least-once task execution with leases/heartbeats. If a worker dies, its task lease expires and another worker picks it up.
@@ -64,6 +67,7 @@ A 2-hour 4K video transcoded serially takes hours. Splitting into chunks gives *
 videos(video_id, uploader_id, title, description, status, duration, renditions JSON, created_at)  -- sharded MySQL (YouTube uses Vitess)
 ```
 Playback request:
+
 1. `GET /watch?v=ID` → metadata service (cached heavily) → returns the manifest URL + the best CDN host (steering)
 2. Player fetches manifest + segments directly from the CDN
 

@@ -5,6 +5,7 @@
 ## 1. Requirements
 
 **Functional**
+
 - 1:1 and group chat (groups up to ~1,000; Slack channels larger)
 - Online/offline delivery, message history across devices
 - Delivery receipts (sent ✓, delivered ✓✓, read)
@@ -12,6 +13,7 @@
 - Media attachments
 
 **Non-functional**
+
 - 500M DAU, ~100M concurrent connections at peak
 - Delivery latency < 200ms when both online
 - **No message loss; no duplicates shown to the user; per-chat ordering**
@@ -43,17 +45,20 @@ Sender ──WS──> Gateway A ──> Chat Service ──> Message Store (Cas
 ```
 
 Inter-gateway routing options:
+
 - Chat service calls the target gateway directly via RPC (gateway address from the session store), or
 - Publish to a **per-gateway queue/topic** (Kafka/Redis pub-sub keyed by gateway), which the gateway subscribes to.
 
 ## 5. Deep dive: message flow and delivery guarantees
 
 **Send (client → server):**
+
 1. Client generates a **client_msg_id** (UUID), shows the message as "sending."
 2. Sends it over the WS. The server **persists it first** (dedupe by `(sender, client_msg_id)`), assigns a server `message_id`/sequence number, and acks to the sender ("sent ✓").
 3. If there's no ack, the client retries with the **same client_msg_id**, so the server dedupes (idempotency).
 
 **Deliver (server → recipient):**
+
 1. Push to the online recipient's gateways (all of their devices).
 2. The recipient's client acks receipt, and the server records **delivered**, notifying the sender (✓✓).
 3. If no ack (or offline): the message stays in the store; when the client reconnects, it **syncs from its last-seen sequence number** per conversation (pull: `GET messages where conv=X and seq > last_seq`).
@@ -66,9 +71,9 @@ This gives **at-least-once delivery + client-side dedupe by message_id = exactly
 
 - Global ordering is unnecessary. **Per-conversation ordering** matters.
 - Assign a **monotonic sequence number per conversation**:
-  - Option A: the conversation's **owning chat server** (conversations partitioned by `conversation_id` via consistent hashing) assigns sequence numbers in memory (single writer), persisted with the message.
-  - Option B: atomic increment per conversation in Redis or the DB (`INCR conv:{id}:seq`).
-  - Option C: Snowflake IDs (time-ordered, but concurrent senders across servers may interleave slightly; acceptable for many apps).
+    - Option A: the conversation's **owning chat server** (conversations partitioned by `conversation_id` via consistent hashing) assigns sequence numbers in memory (single writer), persisted with the message.
+    - Option B: atomic increment per conversation in Redis or the DB (`INCR conv:{id}:seq`).
+    - Option C: Snowflake IDs (time-ordered, but concurrent senders across servers may interleave slightly; acceptable for many apps).
 - Clients sort by the sequence number and detect **gaps** (missing seq means fetch it).
 - Two users sending "simultaneously" get **a** consistent order that everyone sees identically.
 
@@ -81,6 +86,7 @@ messages
   PRIMARY KEY ((conversation_id, bucket), message_seq) CLUSTERING ORDER BY (message_seq DESC)
   sender_id, body / media_ref, created_at, client_msg_id
 ```
+
 - **Cassandra/ScyllaDB/HBase** (Discord moved from Cassandra to ScyllaDB; Facebook Messenger used HBase, later MyRocks).
 - **Bucket** by time (e.g., monthly) or message count so huge channels don't create unbounded partitions (Discord's lesson).
 - **Inbox/conversation list per user:** `user_conversations(user_id, last_activity_ts, conversation_id, unread_count, last_message_preview)`.
@@ -100,9 +106,9 @@ messages
 - Online status = has an active connection + recent heartbeat.
 - Store in Redis with a TTL (`presence:{user} = online, EX 60`; heartbeats refresh it).
 - **Fan-out of presence changes is expensive** (every friend gets notified when you go online or offline). Mitigations:
-  - Only push presence to users **currently viewing** a chat with you (subscribe on view)
-  - Debounce flapping (mobile networks)
-  - Fetch presence lazily when the chat list is opened
+    - Only push presence to users **currently viewing** a chat with you (subscribe on view)
+    - Debounce flapping (mobile networks)
+    - Fetch presence lazily when the chat list is opened
 - "Last seen" can be eventually consistent.
 
 ## 10. Typing indicators, read receipts

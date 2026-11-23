@@ -16,12 +16,14 @@ Document → tokenize → normalize (lowercase, strip accents) → stop words �
 ```
 
 ### Ranking
+
 - **TF-IDF:** term frequency × inverse document frequency.
 - **BM25:** the modern default (Elasticsearch/Lucene). TF saturation plus document length normalization.
 - **Learning to rank / ML re-ranking:** a two-phase approach. Cheap retrieval (BM25 or ANN) for the top ~1,000 candidates, then an expensive ML model re-ranks the top N.
 - **Signals:** freshness, popularity, personalization, click-through rate.
 
 ### Posting list optimizations
+
 - Sorted doc IDs with **delta encoding + variable-byte / PForDelta compression**
 - **Skip lists** for fast intersection
 - Tiered indexes: a small "hot" tier of high-quality docs searched first
@@ -52,6 +54,7 @@ Document → tokenize → normalize (lowercase, strip accents) → stop words �
 **Never dual-write** (app writes DB then ES): it diverges on failure.
 
 **Use CDC:** DB → Debezium → Kafka → indexer → Elasticsearch.
+
 - Idempotent indexing using the doc ID and **external version** (DB version/LSN) so out-of-order updates don't overwrite newer data: `PUT /idx/_doc/42?version=17&version_type=external`.
 - Periodic **full reindex** into a new index with an alias swap for schema changes or drift repair.
 
@@ -67,9 +70,9 @@ Queries: Client → Search API → query understanding (spell, synonyms, intent)
 
 - Text, images, and more become **embeddings** (dense vectors). Find nearest neighbours by cosine or dot-product similarity.
 - **ANN (approximate nearest neighbour) indexes:**
-  - **HNSW** (hierarchical navigable small world graph): high recall, fast, memory-heavy. The default in most vector DBs and pgvector.
-  - **IVF** (inverted file with clustering) + **PQ** (product quantization) to compress vectors: FAISS, for billion scale.
-  - **ScaNN** (Google), **DiskANN** (SSD-resident).
+    - **HNSW** (hierarchical navigable small world graph): high recall, fast, memory-heavy. The default in most vector DBs and pgvector.
+    - **IVF** (inverted file with clustering) + **PQ** (product quantization) to compress vectors: FAISS, for billion scale.
+    - **ScaNN** (Google), **DiskANN** (SSD-resident).
 - **Hybrid search:** BM25 + vector scores combined (reciprocal rank fusion) usually beats either alone.
 - Filtering + ANN is tricky (pre-filter vs post-filter trade-offs).
 

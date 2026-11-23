@@ -6,6 +6,7 @@
 
 ### 1. Range partitioning
 Keys are split into contiguous ranges: `[a–f]`, `[g–m]`, ...
+
 - ✅ Efficient range scans (`WHERE ts BETWEEN ...`), ordered iteration.
 - ❌ **Hot spots** on sequential keys. Timestamp keys send all writes to the last partition.
 - Examples: Bigtable/HBase (tablets/regions), Spanner, CockroachDB, MongoDB range sharding, TiKV.
@@ -13,6 +14,7 @@ Keys are split into contiguous ranges: `[a–f]`, `[g–m]`, ...
 
 ### 2. Hash partitioning
 `partition = hash(key) mod N` (naive) or via consistent hashing.
+
 - ✅ Uniform distribution.
 - ❌ No efficient range queries (adjacent keys scatter).
 - Examples: Cassandra, DynamoDB, Redis Cluster (16,384 hash slots), Kafka (default partitioner).
@@ -53,6 +55,7 @@ Changing N from 10 to 11 remaps ~**91%** of keys. That's a massive data migratio
 Problem: with few nodes, ring segments are uneven, and when a node leaves, its whole load goes to one neighbour.
 
 Fix: each physical node owns **many points** (e.g., 100–256 vnodes) on the ring.
+
 - ✅ Even distribution (law of large numbers)
 - ✅ When a node fails, its load spreads across **many** nodes
 - ✅ Heterogeneous hardware: bigger machines get more vnodes
@@ -62,6 +65,7 @@ Fix: each physical node owns **many points** (e.g., 100–256 vnodes) on the rin
 Key is stored on the first node clockwise **plus the next N−1 distinct physical nodes** (the preference list). Skip vnodes on the same physical node or rack/AZ.
 
 ### Alternatives
+
 - **Rendezvous (highest random weight) hashing:** for each key, compute `hash(key, node)` for every node and pick the max. Simple, minimal movement, O(N) per lookup (fine for small N). Used in some CDNs and load balancers.
 - **Jump consistent hash (Google):** O(ln N), no memory, perfect balance, but nodes must be numbered sequentially (no arbitrary removal). Good for sharded storage with stable shard counts.
 - **Maglev hashing (Google LB):** lookup table with good balance and minimal disruption. Used for L4 load balancing.
@@ -76,6 +80,7 @@ Key is stored on the first node clockwise **plus the next N−1 distinct physica
 | Proportional to nodes | Fixed partitions per node; new node splits random partitions | Cassandra vnodes |
 
 **Operational guidance:**
+
 - **Rebalancing is expensive and risky.** Throttle data movement; it competes with production traffic.
 - Many teams keep a **human in the loop** for rebalancing decisions. Fully automatic rebalancing combined with automatic failure detection can cascade (a slow node is deemed dead, its data moves, which adds load, so more nodes look dead).
 
@@ -83,12 +88,14 @@ Key is stored on the first node clockwise **plus the next N−1 distinct physica
 
 ### Local (document-partitioned) index
 Each partition indexes only its own data.
+
 - ✅ Writes touch one partition.
 - ❌ Reads by secondary key must **scatter-gather** across all partitions, and tail latency suffers.
 - Examples: MongoDB, Cassandra secondary indexes, Elasticsearch.
 
 ### Global (term-partitioned) index
 The index itself is partitioned by the indexed term.
+
 - ✅ Reads by secondary key hit one index partition.
 - ❌ Writes touch multiple partitions (data + index), usually **asynchronously**, so the index is eventually consistent.
 - Examples: DynamoDB GSIs (async), Spanner/CockroachDB secondary indexes (transactional).
@@ -98,6 +105,7 @@ The index itself is partitioned by the indexed term.
 Even with perfect hashing, **one key can be hot** (celebrity, viral post, flash-sale SKU).
 
 Mitigations:
+
 - **Key salting:** `hot_key#0..#9`, writes spread across 10 partitions, reads gather all 10. Only for detected hot keys.
 - **Read replicas / caching** for read-hot keys
 - **Write batching** for write-hot keys
@@ -120,6 +128,7 @@ Mitigations:
 6. **Think about resharding** from day one (logical shards > physical nodes)
 
 ### Examples
+
 | System | Partition key | Why |
 |---|---|---|
 | Chat messages | `conversation_id` | All messages of a chat together, ordered by message_id |

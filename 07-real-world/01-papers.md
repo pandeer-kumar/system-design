@@ -7,46 +7,56 @@ For each paper: what problem it solved, the key ideas, and **what to say in inte
 ## Tier 1: must know
 
 ### 1. Dynamo: Amazon's Highly Available Key-value Store (2007)
+
 - **Problem:** the shopping cart must always accept writes, even during failures.
 - **Ideas:** consistent hashing + vnodes, sloppy quorums + hinted handoff, vector clocks for versioning, read-time conflict resolution by the app, Merkle-tree anti-entropy, gossip membership.
 - **Lesson:** availability over consistency, with conflicts pushed to the application. Influenced Cassandra, Riak, and Voldemort. (DynamoDB the product is a different design: leader-based Multi-Paxos per partition.)
 - **Interview:** the reference design for the KV store question ([case study](../06-case-studies/03-key-value-store.md)).
 
 ### 2. Google File System (2003)
+
 - **Problem:** store huge files on commodity hardware that fails constantly.
 - **Ideas:** single master for metadata (in memory), 64 MB chunks replicated 3× on chunk servers, the master is off the data path, leases to primary replicas to order mutations, record append, relaxed consistency.
 - **Lesson:** separate metadata from data; design for failure as the norm. HDFS cloned it.
 
 ### 3. MapReduce (2004)
+
 - **Ideas:** a map/shuffle/reduce programming model; the framework handles distribution, fault tolerance (re-execution), locality, and stragglers (backup tasks).
 - **Lesson:** deterministic tasks over durable inputs make fault tolerance trivial (just re-run). Spark generalized this.
 
 ### 4. Bigtable (2006)
+
 - **Ideas:** sparse sorted map `(row, column, timestamp) → value`; tablets (range partitions) that split; LSM storage (memtable + SSTables on GFS); Chubby for the master lock and metadata; Bloom filters.
 - **Lesson:** range partitioning with dynamic splits + LSM trees. HBase and Cassandra's storage engine descend from it.
 
 ### 5. Spanner (2012)
+
 - **Problem:** globally distributed, strongly consistent SQL.
 - **Ideas:** Paxos groups per split; 2PC across groups for transactions; **TrueTime** (GPS + atomic clocks, bounded uncertainty ε) + **commit wait** → external consistency (strict serializability); lock-free snapshot reads at timestamps.
 - **Lesson:** you can have global strong consistency if you pay in latency (commit wait plus cross-region Paxos) and invest in clock infrastructure.
 
 ### 6. Raft: In Search of an Understandable Consensus Algorithm (2014)
+
 - **Ideas:** leader election with randomized timeouts, log replication, safety via the election restriction, terms as logical clocks, membership changes.
 - **Lesson:** the consensus algorithm behind etcd, Consul, CockroachDB, TiKV, and Kafka KRaft. Know it in detail ([chapter](../03-distributed-systems/06-consensus.md)).
 
 ### 7. Kafka: a Distributed Messaging System for Log Processing (2011) + "The Log" (Jay Kreps, 2013 blog)
+
 - **Ideas:** a partitioned, replicated, append-only log; consumers pull and track offsets; sequential I/O + page cache + zero-copy; the log as the unifying abstraction for data integration.
 - **Lesson:** a log is the source of truth, and everything else (DBs, caches, indexes) is a derived view.
 
 ### 8. Scaling Memcache at Facebook (2013)
+
 - **Ideas:** look-aside caching; **leases** to fix stale sets and thundering herds; **mcrouter**; gutter pools for failures; regional pools; invalidation via MySQL binlog (McSqueal); remote markers for cross-region read-your-writes; cold cluster warm-up.
 - **Lesson:** the cache consistency and operations playbook at scale ([case study](../06-case-studies/22-distributed-cache.md)).
 
 ### 9. The Tail at Scale (Dean & Barroso, 2013)
+
 - **Ideas:** with fan-out, rare slowness becomes common. Techniques: **hedged requests**, tied requests, micro-partitioning, selective replication of hot items, latency-induced probation, good-enough (partial) results, canary requests.
 - **Lesson:** design for p99, not the average.
 
 ### 10. Chubby Lock Service (2006)
+
 - **Ideas:** coarse-grained locks + small file storage via Paxos; sessions and KeepAlives; **sequencers** (fencing tokens); client caching with invalidation.
 - **Lesson:** a lock service is used mostly for leader election and metadata. ZooKeeper was inspired by it.
 

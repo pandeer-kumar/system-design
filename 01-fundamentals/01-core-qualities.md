@@ -26,6 +26,7 @@
 ### Universal Scalability Law (Gunther)
 
 Throughput doesn't scale linearly. Two penalties:
+
 - **Contention (α):** serialization on shared resources (Amdahl's law)
 - **Coherency (β):** cost of keeping nodes in agreement, which grows with N²
 
@@ -49,6 +50,7 @@ Availability = uptime / (uptime + downtime)
 **Insight from the formula:** you can improve availability by failing less (MTBF ↑) **or recovering faster (MTTR ↓)**. Reducing MTTR (fast detection, automated failover, quick rollback) is usually cheaper and more effective.
 
 ### Techniques
+
 - **Redundancy:** no single point of failure (N+1, N+2)
 - **Failover:** active-passive (standby takes over) or active-active (all serve traffic)
 - **Health checks and automatic replacement**
@@ -105,6 +107,7 @@ Covered in depth in [03-distributed-systems/05-consistency-models.md](../03-dist
 ## Maintainability, operability, cost
 
 Interviewers at the senior level care about these:
+
 - **Operability:** can on-call debug it at 3am? Does it have clear metrics and runbooks?
 - **Simplicity:** every component you add is something that can fail and someone has to run.
 - **Evolvability:** can you change the schema, add a region, or swap a component?

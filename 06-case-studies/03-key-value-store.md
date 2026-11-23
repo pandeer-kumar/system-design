@@ -7,6 +7,7 @@
 **Functional:** `put(key, value)`, `get(key)`, `delete(key)`. Values up to ~1 MB.
 
 **Non-functional**
+
 - Massive scale: petabytes, millions of ops/s
 - **Always writable** (highly available) even during failures and partitions (Dynamo's shopping cart requirement)
 - Low latency: p99.9 < 10ms within a region
@@ -48,9 +49,9 @@ Every node runs: request coordinator, storage engine (LSM: memtable + commit log
 
 - N = 3 typical. **W + R > N** for overlapping read/write sets (e.g., W=2, R=2).
 - Tune per use case:
-  - W=1, R=1: fastest, weakest
-  - W=2, R=2: balanced
-  - W=3, R=1: fast reads, writes fail if any replica is down
+    - W=1, R=1: fastest, weakest
+    - W=2, R=2: balanced
+    - W=3, R=1: fast reads, writes fail if any replica is down
 - **Coordinator:** sends to all N, returns when W/R respond (the rest complete in the background).
 - Multi-DC: `LOCAL_QUORUM` (quorum within the local DC) for latency; async to other DCs.
 
@@ -70,6 +71,7 @@ Partition: concurrent writes
 Read sees D3 and D4: neither descends from the other → return both siblings
 Client merges → writes D5 [(Sx,3),(Sy,1),(Sz,1)] via Sx
 ```
+
 - Clock size: truncate the oldest entries beyond ~10 (lossy, rarely a problem in practice).
 - **Alternative: LWW by timestamp** (Cassandra). Simple, but loses concurrent writes. Use for data where that's acceptable.
 - **CRDTs** for automatic merging (Riak data types).
@@ -77,11 +79,13 @@ Client merges → writes D5 [(Sx,3),(Sy,1),(Sz,1)] via Sx
 ## 7. Deep dive: handling failures
 
 ### Temporary failures: sloppy quorum + hinted handoff
+
 - Node A (in the preference list) is down → write goes to node D (next on the ring) with a **hint** "this belongs to A."
 - D stores it separately and delivers it when A recovers.
 - Writes stay available, but **reads may miss data** temporarily (sloppy quorum breaks the overlap guarantee).
 
 ### Permanent failures: anti-entropy with Merkle trees
+
 - Each node keeps a Merkle tree per token range: leaves = hashes of key ranges, parents = hashes of children.
 - Two replicas compare root hashes; if they differ, recurse into children. **Only differing ranges are exchanged**, which is O(log n) comparisons.
 - Runs in the background (Cassandra `nodetool repair`). **You must run repair regularly**, or deleted data can resurrect (tombstones expire after `gc_grace_seconds`).
@@ -99,6 +103,7 @@ LSM tree:
 write → commit log (fsync policy) + memtable → flush → SSTable
 read  → memtable → row cache → Bloom filters → SSTables (newest first) → merge
 ```
+
 - Compaction strategies by workload (size-tiered, leveled, time-window).
 - Deletes are tombstones; purged after the grace period and compaction.
 - Per-SSTable Bloom filters avoid disk reads for absent keys.
@@ -106,6 +111,7 @@ read  → memtable → row cache → Bloom filters → SSTables (newest first) �
 ## 9. Write and read paths (put it together)
 
 **Write (W=2, N=3):**
+
 1. Client → coordinator (token-aware client picks a replica directly)
 2. Coordinator computes the preference list [A, B, C]; increments the vector clock
 3. Sends to A, B, C in parallel
@@ -113,6 +119,7 @@ read  → memtable → row cache → Bloom filters → SSTables (newest first) �
 5. On 2 acks → success to client. (If C is down → hint stored on D.)
 
 **Read (R=2):**
+
 1. Coordinator asks A, B, C (or 2 of them + a digest from the 3rd)
 2. Waits for 2 responses
 3. Compares versions: one dominates → return it (read repair stale nodes); concurrent → return siblings or LWW

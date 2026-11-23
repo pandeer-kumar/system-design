@@ -5,12 +5,14 @@
 ## 1. Requirements
 
 **Functional**
+
 - Upload/download files; sync across a user's devices automatically
 - Share files and folders with others
 - Version history; restore deleted files
 - Offline edits sync later
 
 **Non-functional**
+
 - 500M users, 100M DAU; files up to 50 GB
 - Sync latency: seconds after a change
 - **Never lose data**; handle conflicts gracefully
@@ -51,6 +53,7 @@ Client (watcher, chunker, local DB of file state, sync engine)
 ## 6. Deep dive: conflicts
 
 Two devices edit the same file offline.
+
 - Device A commits version 6 (base 5). Device B tries to commit with base 5 → **conflict** (current is 6).
 - Resolution: **don't merge binary files.** Keep both: save B's version as "file (B's conflicted copy).docx". That's what Dropbox does: no data loss, and the user decides.
 - For specific types (Google Docs), real-time collaboration avoids conflicts (see [12-collaborative-editor.md](12-collaborative-editor.md)).

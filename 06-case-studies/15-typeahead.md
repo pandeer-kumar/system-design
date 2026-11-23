@@ -5,11 +5,13 @@
 ## 1. Requirements
 
 **Functional**
+
 - As the user types a prefix, return the top 5–10 suggestions
 - Ranked by popularity (and optionally personalization, freshness, locale)
 - Handle trending queries (news events) within minutes
 
 **Non-functional**
+
 - **Latency: < 50ms server time, < 100ms perceived**
 - Scale: 10B searches/day, ~5 keystroke requests per search → ~500K QPS peak
 - Highly available; slightly stale suggestions OK
@@ -24,6 +26,7 @@ The set of prefixes is bounded (most queries are short), and the top-K per prefi
 ```
 root → "c" → "ca" → "car" [top: "car insurance", "cars for sale", "carmax", ...]
 ```
+
 - Each node stores the top-K completions of its subtree, so lookup is O(prefix length).
 - Memory: large for billions of queries. Prune rare queries (keep queries above a frequency threshold).
 
@@ -43,6 +46,7 @@ Search logs → Kafka → aggregation
         → build prefix→top-K → versioned snapshot → load into serving nodes (blue/green swap)
    Streaming (Flink): trending queries in the last ~10 min (spikes vs baseline) → merged at serving time
 ```
+
 - **Time decay:** `score = Σ count × e^(−λ·age)`, so old popular queries fade.
 - **Filtering:** remove offensive, legally sensitive, or personal queries (a policy requirement for real products).
 
@@ -54,6 +58,7 @@ Browser (debounce ~50–100ms, client cache of prefix results)
    → Typeahead service (sharded in-memory prefix maps, replicated)
    → merge: base suggestions + trending + personalized (user's own history) → rank → return
 ```
+
 - **Sharding:** by prefix (first 1–2 characters), but distribution is skewed ("s" ≫ "x"). Use **hash of the full prefix**, or range splits tuned by load.
 - **Replication** for read throughput; all data is read-only between rebuilds, so it's trivially consistent.
 - **Client-side optimizations:** debounce keystrokes, cancel in-flight requests when the user types more, cache results per prefix, prefetch next-character results.
