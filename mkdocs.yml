@@ -170,3 +170,4 @@ nav:
     - 09-technology-deep-dives/01-kafka.md
     - 09-technology-deep-dives/02-redis.md
     - 09-technology-deep-dives/03-task-queues.md
+    - 09-technology-deep-dives/04-postgresql-mysql.md
