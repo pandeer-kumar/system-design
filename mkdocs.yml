@@ -156,6 +156,7 @@ nav:
     - 06-case-studies/25-distributed-task-queue.md
     - 06-case-studies/26-ad-click-aggregation.md
     - 06-case-studies/27-top-k-trending.md
+    - 06-case-studies/28-object-storage.md
   - Real World:
     - 07-real-world/README.md
     - 07-real-world/01-papers.md
